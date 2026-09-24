@@ -36,14 +36,7 @@ if [[ $BUILD -eq 1 ]]; then
 fi
 [[ -d "$PRODUCT" ]] || { echo "Build product not found: $PRODUCT" >&2; exit 1; }
 
-# Xcode's incremental builds can re-copy the Swift package's resource bundle after the
-# extension was sealed, leaving a stale signature. Re-sign (ad hoc), inside out, every time.
-APPEX="$PRODUCT/Contents/PlugIns/MD Buddy Preview.appex"
-codesign --force --sign - --options runtime --timestamp=none \
-  --entitlements "$ROOT/PreviewExtension/MDBuddyPreview.entitlements" "$APPEX"
-codesign --force --sign - --options runtime --timestamp=none \
-  --entitlements "$ROOT/App/MDBuddy.entitlements" "$PRODUCT"
-codesign --verify --deep --strict "$PRODUCT"
+"$ROOT/scripts/sign.sh" "$PRODUCT"
 
 if [[ -d "$DEST" ]]; then
   existing_id="$(defaults read "$DEST/Contents/Info.plist" CFBundleIdentifier 2>/dev/null || true)"
