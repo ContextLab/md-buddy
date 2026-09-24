@@ -42,3 +42,9 @@ Install, test via computer control, document with screenshots, make it easy to i
 - Default code/plain-text size 14px (was 12.5/13px; markdown blocks were 85% of 15px). Pinch-zoom on.
 - Verified live in Finder: default 21px rows (14px), NSFixedPitchFontSize=18 → 27px rows. Pref restored (deleted).
 - install.sh/uninstall.sh now kill a running preview process (a stale one kept serving old code).
+
+## 2026-09-24: v0.1 release
+- initial-build fast-forwarded into main, then deleted (remote) after confirming it was an ancestor of main.
+- make dist now re-signs via scripts/sign.sh (same as install) and unregisters the build copy.
+- Release v0.1 (tag at 7adecb0): https://github.com/ContextLab/md-buddy/releases/tag/v0.1
+  Asset MD-Buddy-1.0.0.zip (app version kept at 1.0.0 per user); arm64 only; downloaded asset sha256 matches local.
