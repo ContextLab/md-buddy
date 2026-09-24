@@ -1,0 +1,53 @@
+# XcodeGen spec. Regenerate the project with `make project` (requires `brew install xcodegen`).
+name: MDBuddy
+options:
+  bundleIdPrefix: org.contextlab
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: YES
+    DEAD_CODE_STRIPPING: YES
+packages:
+  MDBuddyCore:
+    path: Core
+targets:
+  MDBuddy:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+    settings:
+      base:
+        PRODUCT_NAME: "MD Buddy"
+        PRODUCT_BUNDLE_IDENTIFIER: org.contextlab.mdbuddy
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/MDBuddy.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: MDBuddyPreview
+        embed: true
+        codeSign: true
+  MDBuddyPreview:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: PreviewExtension
+    settings:
+      base:
+        PRODUCT_NAME: "MD Buddy Preview"
+        PRODUCT_BUNDLE_IDENTIFIER: org.contextlab.mdbuddy.preview
+        INFOPLIST_FILE: PreviewExtension/Info.plist
+        CODE_SIGN_ENTITLEMENTS: PreviewExtension/MDBuddyPreview.entitlements
+        SKIP_INSTALL: YES
+    dependencies:
+      - package: MDBuddyCore
+      - sdk: Quartz.framework
+      - sdk: WebKit.framework

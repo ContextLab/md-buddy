@@ -55,10 +55,30 @@
     });
   }
 
+  // Quick Look gives previews no network access, so remote images (and missing local
+  // ones) become a labelled chip instead of a broken-image icon.
+  function replaceBrokenImage(img) {
+    if (!img.parentNode) return;
+    var remote = img.src.indexOf("mdbuddy-remote:") === 0;
+    var source = remote ? img.src.slice("mdbuddy-remote:".length) : decodeURIComponent(img.src.replace(/^[a-z-]+:\/\//, ""));
+    var chip = document.createElement("span");
+    chip.className = "image-placeholder" + (remote ? " remote" : "");
+    chip.title = (remote ? "Remote images can't load in Quick Look: " : "Image not found: ") + source;
+    chip.textContent = img.alt || source.split("/").pop() || "image";
+    img.parentNode.replaceChild(chip, img);
+  }
+  function watchImages() {
+    document.querySelectorAll("img").forEach(function (img) {
+      if (img.complete && img.naturalWidth === 0 && img.src) replaceBrokenImage(img);
+      else img.addEventListener("error", function () { replaceBrokenImage(img); });
+    });
+  }
+
   var article = document.querySelector(".markdown-body");
   if (article) {
     addHeadingAnchors(article);
     addAlerts(article);
+    watchImages();
   }
   highlight();
 })();

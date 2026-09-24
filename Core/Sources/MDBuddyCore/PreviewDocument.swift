@@ -33,7 +33,7 @@ public struct PreviewDocument {
 
         switch kind {
         case .markdown:
-            let body = MarkdownRenderer.render(text)
+            let body = RemoteImages.rewrite(MarkdownRenderer.render(text))
             let script = Resources.appScript(highlight: body.contains("<code class=\"language-"))
             html = Self.page(title: fileName, bodyClass: "markdown",
                              body: notice + "<article class=\"markdown-body\">\(body)</article>", script: script)
@@ -77,7 +77,7 @@ public struct PreviewDocument {
         // and nothing may be fetched except images/media.
         let csp = [
             "default-src 'none'",
-            "img-src * data: blob: mdbuddy-local:",
+            "img-src * data: blob: mdbuddy-local: mdbuddy-remote:",
             "media-src * data: blob: mdbuddy-local:",
             "style-src 'unsafe-inline'",
             "font-src data:",

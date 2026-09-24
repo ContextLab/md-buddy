@@ -83,6 +83,9 @@ A fenced block with no language stays plain.
 
 <p align="center"><img src="images/diagram.svg" alt="An SVG diagram" width="360"></p>
 
+Remote images can't load inside Quick Look (macOS gives previews no network access), so they
+appear as a labelled placeholder: ![Markdown logo](https://raw.githubusercontent.com/github/explore/main/topics/markdown/markdown.png)
+
 ## Alerts
 
 > [!NOTE]

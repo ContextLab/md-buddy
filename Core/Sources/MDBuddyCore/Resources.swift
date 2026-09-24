@@ -4,7 +4,7 @@ import Foundation
 /// (the page has no network or file access for its own assets).
 enum Resources {
     static func load(_ name: String) -> String {
-        guard let url = Bundle.module.url(forResource: name, withExtension: nil, subdirectory: "Resources"),
+        guard let url = Bundle.module.url(forResource: name, withExtension: nil),
               let text = try? String(contentsOf: url, encoding: .utf8) else {
             // A missing resource is a packaging bug; make it visible rather than silently unstyled.
             return "/* MD Buddy: missing resource \(name) */"

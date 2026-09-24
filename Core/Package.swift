@@ -6,6 +6,7 @@ let package = Package(
     platforms: [.macOS(.v13)],
     products: [
         .library(name: "MDBuddyCore", targets: ["MDBuddyCore"]),
+        .executable(name: "mdbuddy-render", targets: ["mdbuddy-render"]),
     ],
     dependencies: [
         // Apple's fork of GitHub's cmark-gfm (BSD-2-Clause). Fast C parser for
@@ -19,7 +20,11 @@ let package = Package(
                 .product(name: "cmark-gfm", package: "swift-cmark"),
                 .product(name: "cmark-gfm-extensions", package: "swift-cmark"),
             ],
-            resources: [.copy("Resources")]
+            resources: [.process("Resources")]
+        ),
+        .executableTarget(
+            name: "mdbuddy-render",
+            dependencies: ["MDBuddyCore"]
         ),
         .testTarget(
             name: "MDBuddyCoreTests",
