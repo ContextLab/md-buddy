@@ -35,7 +35,7 @@ struct WelcomeView: View {
             VStack(alignment: .leading, spacing: 10) {
                 step("1", "Select a .md, code or text file in Finder.")
                 step("2", "Press Space to preview it.")
-                step("3", "If previews don't appear, make sure MD Buddy is switched on under System Settings › General › Login Items & Extensions › Quick Look.")
+                step("3", "If previews don't appear, open System Settings › General › Login Items & Extensions, click ⓘ next to MD Buddy under Extensions, and switch Quick Look on.")
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)

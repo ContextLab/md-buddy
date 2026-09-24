@@ -1,22 +1,35 @@
-# MD Buddy: build session (2026-09-23)
+# MD Buddy: build session (2026-09-23 → 24)
 
 ## Goal
 Lightweight Quick Look preview extension for macOS Finder: Markdown (full GFM, raw HTML, images,
-code highlighting), later extended by the user to plain-text and source-code files with highlighting.
-Install it, test it via computer control (screenshots), document it with screenshots, and make it easy to install.
+code highlighting); user later added plain-text and source-code files with highlighting.
+Install, test via computer control, document with screenshots, make it easy to install.
 
-## Architecture decisions
-- Core/ = SwiftPM package MDBuddyCore: cmark-gfm (swiftlang/swift-cmark >= 0.9.0) -> HTML fragment,
-  PreviewDocument builds a self-contained page (inline CSS/JS, CSP with nonce; tagfilter blocks <script>).
-- highlight.js 11.11.1 (cdnjs, BSD-3) + 19 extra languages merged into highlight-extra.min.js.
-  Only inlined when the page has code to highlight.
-- Extension: view-based QLPreviewingController + WKWebView (JS needed for hljs); custom URL scheme
-  `mdbuddy-local:` serves relative images from disk (the base URL is the file's directory).
-- No signing identity on this machine -> ad-hoc signing.
-- Syntax Highlight.app (claimed code types) was moved to the Trash by the user (flagged "unsafe").
+## Status: ready for user review (installed at /Applications/MD Buddy.app)
+- 36 tests pass (`make test`): renderer, decoding, WebKit page-script tests, routing test.
+- Verified live in Finder (select + Space) via AppleScript/System Events: markdown, code, images, alerts.
+- make install / make uninstall cycle verified.
 
-## Status
-- [x] Core renderer + 28 passing tests (swift test in Core/)
-- [ ] Xcode project (xcodegen project.yml), host app, extension
-- [ ] install script / Makefile, install, test with qlmanage + Finder
-- [ ] screenshots, README, commit/push
+## Architecture
+- Core/ SwiftPM package: cmark-gfm (swift-cmark >= 0.9.0) → PreviewDocument (inline CSS/JS, CSP nonce).
+  highlight.js 11.11.1 + 19 extra languages, included only when code is present.
+- Extension: QLPreviewingController + WKWebView; mdbuddy-local: scheme serves sibling files;
+  mdbuddy-remote: proxies remote images (fails in QL: no network) → JS placeholder chip.
+- mdbuddy-render CLI: HTML / PNG / --eval / --list-types.
+
+## Findings worth remembering
+- QL routes by EXACT UTI in QLSupportedContentTypes (conformance ignored). gen_types.py derives
+  imported types (App/Info.plist) + claimed ids (PreviewExtension/Info.plist) from LanguageMap.
+- Reserved by macOS (observed on 26.6): .txt (system text preview), .ts/.mts (MPEG-2 video).
+- QL extensions get no network even with network.client entitlement (tested: WebKit and URLSession both fail).
+- suppressesIncrementalRendering + a hanging remote image = blank preview; removed.
+- Xcode incremental builds can leave a stale seal on the SPM resource bundle → install.sh re-signs ad hoc.
+- Xcode registers build/ copy with LaunchServices → duplicate entry in System Settings; install.sh unregisters it.
+- User trashed QLMarkdown + Syntax Highlight; I unregistered their stale LaunchServices entries
+  (lsregister -u on the Trash paths). Their UTIs (org.go.source etc.) vanished → added our own.
+- qlmanage titles windows "[DEBUG] …"; README screenshots use real Finder panels (scripts/screenshots.sh).
+- This Xcode 27 install prints CoreSimulator/CoreDevice plugin errors: needs `xcodebuild -runFirstLaunch` (not run).
+
+## Possible follow-ups
+- Thumbnail extension (Finder icons rendered from content).
+- KaTeX math / Mermaid (would add ~300 KB–3 MB of JS; deliberately left out).

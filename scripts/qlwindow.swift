@@ -1,17 +1,22 @@
-// Prints "<windowID> <width>x<height> <owner>" for on-screen windows whose owner matches argv[1].
-// Used by scripts/screenshots.sh to capture only the Quick Look panel.
+// Finds on-screen windows for the screenshot script.
+// Usage: qlwindow OWNER [TITLE]
+// Prints "<windowID> <x> <y> <width> <height>" for each window whose owner contains OWNER
+// (case-insensitive) and, if given, whose title equals TITLE. Needs Screen Recording
+// permission for titles to be visible.
 import CoreGraphics
 import Foundation
 
-let pattern = CommandLine.arguments.count > 1 ? CommandLine.arguments[1].lowercased() : "quicklook"
+let args = CommandLine.arguments
+let owner = args.count > 1 ? args[1].lowercased() : "quicklook"
+let title = args.count > 2 ? args[2] : nil
 let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
     as? [[String: Any]] ?? []
 for window in info {
-    let owner = (window[kCGWindowOwnerName as String] as? String) ?? ""
-    guard owner.lowercased().contains(pattern),
+    let windowOwner = (window[kCGWindowOwnerName as String] as? String) ?? ""
+    let windowTitle = (window[kCGWindowName as String] as? String) ?? ""
+    guard windowOwner.lowercased().contains(owner), title == nil || windowTitle == title,
           let id = window[kCGWindowNumber as String] as? Int,
-          let bounds = window[kCGWindowBounds as String] as? [String: CGFloat],
-          (window[kCGWindowLayer as String] as? Int) ?? 0 >= 0,
-          let width = bounds["Width"], let height = bounds["Height"], width > 200, height > 200 else { continue }
-    print("\(id) \(Int(width))x\(Int(height)) \(owner)")
+          let b = window[kCGWindowBounds as String] as? [String: CGFloat],
+          let w = b["Width"], let h = b["Height"], w > 200, h > 200 else { continue }
+    print(id, Int(b["X"] ?? 0), Int(b["Y"] ?? 0), Int(w), Int(h))
 }

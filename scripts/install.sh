@@ -62,6 +62,9 @@ ditto "$PRODUCT" "$DEST"
 xattr -dr com.apple.quarantine "$DEST" 2>/dev/null || true
 
 echo "==> Registering the Quick Look extension"
+# Xcode registers the copy in build/ too; unregister it so only the installed app is listed.
+pluginkit -r "$PRODUCT/Contents/PlugIns/MD Buddy Preview.appex" 2>/dev/null || true
+"$LSREGISTER" -u "$PRODUCT" 2>/dev/null || true
 "$LSREGISTER" -f -R "$DEST"
 pluginkit -a "$DEST/Contents/PlugIns/MD Buddy Preview.appex"
 pluginkit -e use -i "$EXT_ID"

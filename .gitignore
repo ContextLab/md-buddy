@@ -6,3 +6,4 @@ xcuserdata/
 .swiftpm/
 .DS_Store
 /dist/
+__pycache__/
