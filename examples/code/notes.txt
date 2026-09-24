@@ -1,0 +1,4 @@
+Plain text files are shown in a monospaced font with soft wrapping, so long lines like this one wrap neatly at the edge of the Quick Look window instead of forcing you to scroll sideways to read them.
+
+  Indentation   and   spacing   are preserved.
+Tabs	too.
