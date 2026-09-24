@@ -7,11 +7,11 @@ public enum DocumentKind: Equatable {
     case code(language: String?)
     case plainText
 
-    static let markdownExtensions: Set<String> = [
+    public static let markdownExtensions: Set<String> = [
         "md", "markdown", "mdown", "mkd", "mkdn", "mdwn", "mdtext", "mdtxt", "rmd", "qmd",
     ]
 
-    static let plainTextExtensions: Set<String> = ["txt", "text", "log", "out", "rtx", ""]
+    public static let plainTextExtensions: Set<String> = ["txt", "text", "log", "out", "rtx", ""]
 
     /// Chooses a preview style from the file name (extension, or well-known file names).
     public static func detect(fileName: String) -> DocumentKind {

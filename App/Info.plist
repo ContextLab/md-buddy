@@ -44,13 +44,14 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>markdown</string>
 					<string>mdown</string>
-					<string>mkd</string>
-					<string>mkdn</string>
-					<string>mdwn</string>
 					<string>mdtext</string>
 					<string>mdtxt</string>
+					<string>mdwn</string>
+					<string>mkd</string>
+					<string>mkdn</string>
+					<string>qmd</string>
+					<string>rmd</string>
 				</array>
 			</dict>
 		</dict>
@@ -68,48 +69,90 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>kt</string>
-					<string>kts</string>
-					<string>pyi</string>
-					<string>pyx</string>
-					<string>matlab</string>
-					<string>gradle</string>
-					<string>graphql</string>
-					<string>gql</string>
-					<string>conf</string>
-					<string>dart</string>
-					<string>ps1</string>
-					<string>psm1</string>
-					<string>jsonc</string>
-					<string>json5</string>
-					<string>mts</string>
-					<string>cts</string>
-					<string>svelte</string>
-					<string>vue</string>
-					<string>lhs</string>
-					<string>nginx</string>
-					<string>edn</string>
-					<string>cljs</string>
+					<string>babelrc</string>
+					<string>bashrc</string>
+					<string>bbl</string>
+					<string>cff</string>
+					<string>cjs</string>
+					<string>clj</string>
 					<string>cljc</string>
-					<string>hrl</string>
-					<string>mli</string>
-					<string>vimrc</string>
-					<string>properties</string>
-					<string>env</string>
-					<string>gitignore</string>
-					<string>gitattributes</string>
-					<string>dockerignore</string>
-					<string>npmrc</string>
-					<string>editorconfig</string>
-					<string>dockerfile</string>
-					<string>sbt</string>
-					<string>sc</string>
+					<string>cljs</string>
+					<string>cmake</string>
+					<string>conf</string>
+					<string>cs</string>
+					<string>csx</string>
+					<string>cts</string>
 					<string>cu</string>
 					<string>cuh</string>
+					<string>dart</string>
+					<string>ddl</string>
+					<string>desktop</string>
+					<string>dockerfile</string>
+					<string>dockerignore</string>
+					<string>editorconfig</string>
+					<string>erl</string>
+					<string>eslintrc</string>
+					<string>ex</string>
+					<string>exs</string>
+					<string>f03</string>
+					<string>f08</string>
+					<string>gemspec</string>
+					<string>gitattributes</string>
+					<string>gitconfig</string>
+					<string>gitignore</string>
+					<string>go</string>
+					<string>gql</string>
+					<string>gradle</string>
+					<string>graphql</string>
+					<string>groovy</string>
+					<string>gyp</string>
+					<string>hrl</string>
+					<string>hs</string>
 					<string>ino</string>
-					<string>wat</string>
+					<string>jl</string>
+					<string>json5</string>
+					<string>jsonc</string>
+					<string>jsp</string>
+					<string>jsx</string>
+					<string>kt</string>
+					<string>kts</string>
+					<string>less</string>
+					<string>matlab</string>
+					<string>ml</string>
+					<string>mli</string>
+					<string>nginx</string>
+					<string>npmrc</string>
+					<string>podspec</string>
+					<string>profile</string>
+					<string>properties</string>
+					<string>ps1</string>
+					<string>psd1</string>
+					<string>psm1</string>
+					<string>psql</string>
+					<string>pxd</string>
+					<string>pyi</string>
+					<string>pyw</string>
+					<string>pyx</string>
+					<string>rake</string>
+					<string>rs</string>
+					<string>ru</string>
+					<string>sass</string>
+					<string>sbt</string>
+					<string>sc</string>
+					<string>scala</string>
+					<string>scss</string>
+					<string>svelte</string>
+					<string>t</string>
+					<string>vb</string>
+					<string>vbs</string>
+					<string>vim</string>
+					<string>vimrc</string>
+					<string>vue</string>
 					<string>wast</string>
-					<string>cff</string>
+					<string>wat</string>
+					<string>webmanifest</string>
+					<string>wsgi</string>
+					<string>zshrc</string>
 				</array>
 			</dict>
 		</dict>

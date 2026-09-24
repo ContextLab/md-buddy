@@ -28,51 +28,68 @@
 		<dict>
 			<key>QLIsDataBasedPreview</key>
 			<false/>
-			<key>QLSupportsSearchableItems</key>
-			<false/>
 			<key>QLSupportedContentTypes</key>
 			<array>
-				<!-- Markdown -->
 				<string>net.daringfireball.markdown</string>
 				<string>org.contextlab.mdbuddy.markdown</string>
+				<string>org.contextlab.mdbuddy.source</string>
 				<string>com.rstudio.rmarkdown</string>
 				<string>org.quarto.qmarkdown</string>
-				<!-- Plain text -->
 				<string>public.plain-text</string>
-				<string>public.log</string>
-				<string>public.delimited-values-text</string>
-				<!-- Source code -->
 				<string>public.source-code</string>
 				<string>public.script</string>
 				<string>public.shell-script</string>
-				<string>public.python-script</string>
-				<string>public.ruby-script</string>
-				<string>public.perl-script</string>
-				<string>public.php-script</string>
+				<string>public.log</string>
+				<string>com.apple.log</string>
+				<string>org.go.source</string>
+				<string>org.rust-lang.rust</string>
+				<string>org.julialang.julia</string>
+				<string>com.microsoft.typescript</string>
+				<string>com.apple.applescript.text</string>
+				<string>public.bash-script</string>
+				<string>org.tug.tex.bibtex</string>
 				<string>public.c-source</string>
-				<string>public.c-header</string>
 				<string>public.c-plus-plus-source</string>
+				<string>public.toml</string>
+				<string>org.tug.cls</string>
+				<string>com.apple.terminal.shell-script</string>
+				<string>public.css</string>
+				<string>public.patch-file</string>
+				<string>org.tug.dtx</string>
+				<string>com.adobe.edn</string>
+				<string>public.fortran-source</string>
+				<string>public.fortran-77-source</string>
+				<string>public.fortran-90-source</string>
+				<string>public.fortran-95-source</string>
+				<string>public.geojson</string>
+				<string>public.c-header</string>
 				<string>public.c-plus-plus-header</string>
-				<string>public.objective-c-source</string>
-				<string>public.objective-c-plus-plus-source</string>
-				<string>public.swift-source</string>
+				<string>com.microsoft.ini</string>
 				<string>com.sun.java-source</string>
 				<string>com.netscape.javascript-source</string>
-				<string>com.adobe.jsx</string>
-				<string>public.tsx</string>
 				<string>public.json</string>
-				<string>public.yaml</string>
-				<string>public.toml</string>
-				<string>com.microsoft.ini</string>
-				<string>public.css</string>
+				<string>public.ksh-script</string>
+				<string>com.unknown.lhs</string>
+				<string>org.tug.ltx</string>
+				<string>org.tug.lua</string>
+				<string>public.objective-c-source</string>
 				<string>public.make-source</string>
-				<string>public.patch-file</string>
+				<string>public.objective-c-plus-plus-source</string>
+				<string>public.php-script</string>
+				<string>public.perl-script</string>
+				<string>public.protobuf-source</string>
+				<string>public.python-script</string>
+				<string>com.apple.rez-source</string>
+				<string>public.ruby-script</string>
+				<string>org.iso.sql</string>
+				<string>org.tug.sty</string>
+				<string>public.swift-source</string>
 				<string>org.tug.tex</string>
-				<string>org.tug.tex.bibtex</string>
-				<string>org.elixir-lang.source</string>
-				<string>org.cmake.cmake</string>
-				<string>org.contextlab.mdbuddy.source</string>
+				<string>public.yaml</string>
+				<string>public.zsh-script</string>
 			</array>
+			<key>QLSupportsSearchableItems</key>
+			<false/>
 		</dict>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.quicklook.preview</string>

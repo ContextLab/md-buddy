@@ -1,5 +1,6 @@
 import AppKit
 import MDBuddyCore
+import UniformTypeIdentifiers
 
 /// mdbuddy-render — render a file the way the Quick Look extension does.
 ///
@@ -13,6 +14,19 @@ import MDBuddyCore
 let usage = "usage: mdbuddy-render FILE [--png OUT.png [--width N] [--height N] [--full] [--appearance light|dark]] [--eval JS]"
 
 var args = Array(CommandLine.arguments.dropFirst())
+
+// Maintenance: print every known extension with the type macOS currently resolves it to,
+// as TSV (kind, extension, identifier, dynamic). Consumed by scripts/gen_types.py.
+if args == ["--list-types"] {
+    let markdown = DocumentKind.markdownExtensions.map { ("markdown", $0) }
+    let code = LanguageMap.byExtension.keys.map { ("code", $0) }
+    let text = DocumentKind.plainTextExtensions.filter { !$0.isEmpty }.map { ("text", $0) }
+    for (kind, ext) in (markdown + code + text).sorted(by: { $0.1 < $1.1 }) {
+        let type = UTType(filenameExtension: ext)
+        print([kind, ext, type?.identifier ?? "-", type?.isDynamic == true ? "dynamic" : "declared"].joined(separator: "\t"))
+    }
+    exit(0)
+}
 guard let path = args.first, !path.hasPrefix("-") else {
     FileHandle.standardError.write(Data((usage + "\n").utf8))
     exit(2)
