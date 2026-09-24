@@ -22,6 +22,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController, WKN
 
         webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 800, height: 600), configuration: configuration)
         webView.navigationDelegate = self
+        webView.allowsMagnification = true  // pinch to zoom
         webView.autoresizingMask = [.width, .height]
         webView.setValue(false, forKey: "drawsBackground")  // avoid a white flash in dark mode
         view = webView
@@ -30,7 +31,8 @@ final class PreviewViewController: NSViewController, QLPreviewingController, WKN
 
     func preparePreviewOfFile(at url: URL) async throws {
         let data = try Data(contentsOf: url, options: .mappedIfSafe)
-        let document = PreviewDocument(fileName: url.lastPathComponent, data: data)
+        let document = PreviewDocument(fileName: url.lastPathComponent, data: data,
+                                       codeFontSize: PreviewDocument.preferredCodeFontSize())
 
         switch document.kind {
         case .markdown: preferredContentSize = NSSize(width: 860, height: 900)

@@ -8,19 +8,38 @@ public struct PreviewDocument {
     public static let maxHighlightBytes = 1 * 1024 * 1024
     /// Auto-detecting a language is much slower than highlighting a known one.
     public static let maxAutoDetectBytes = 64 * 1024
+    /// Font size (CSS px = points) for code, code blocks and plain text.
+    public static let defaultCodeFontSize = 14.0
+
+    /// The code font size to use: the Cocoa "user fixed-pitch font" size
+    /// (`defaults write -g NSFixedPitchFontSize -float 15`) when the user has set one,
+    /// otherwise `defaultCodeFontSize`. macOS offers no UI for this setting, and its unset
+    /// fallback (Menlo 11 pt) is deliberately not used: it is smaller than this default.
+    ///
+    /// Only the persisted global domain is consulted: AppKit registers NSFixedPitchFontSize = 11
+    /// as a fallback, so `UserDefaults.object(forKey:)` would report 11 for users who never set it.
+    public static func preferredCodeFontSize(
+        globalPreferences: [String: Any]? = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)
+    ) -> Double {
+        let raw = globalPreferences?["NSFixedPitchFontSize"]
+        let value = (raw as? NSNumber)?.doubleValue ?? (raw as? String).flatMap(Double.init)
+        guard let value, value > 0 else { return defaultCodeFontSize }
+        return min(max(value, 8), 48)
+    }
 
     public let kind: DocumentKind
     public let title: String
     public let html: String
 
-    public init(fileName: String, data: Data, kind: DocumentKind? = nil) {
+    public init(fileName: String, data: Data, kind: DocumentKind? = nil,
+                codeFontSize: Double = PreviewDocument.defaultCodeFontSize) {
         let kind = kind ?? DocumentKind.detect(fileName: fileName)
         self.kind = kind
         self.title = fileName
 
         let truncated = data.count > Self.maxBytes
         guard let text = TextDecoding.decode(truncated ? Self.utf8SafePrefix(data, Self.maxBytes) : data) else {
-            html = Self.page(title: fileName, bodyClass: "notice",
+            html = Self.page(title: fileName, codeFontSize: codeFontSize, bodyClass: "notice",
                              body: "<p>This file does not appear to contain text.</p>", script: nil)
             return
         }
@@ -35,11 +54,11 @@ public struct PreviewDocument {
         case .markdown:
             let body = RemoteImages.rewrite(MarkdownRenderer.render(text))
             let script = Resources.appScript(highlight: body.contains("<code class=\"language-"))
-            html = Self.page(title: fileName, bodyClass: "markdown",
+            html = Self.page(title: fileName, codeFontSize: codeFontSize, bodyClass: "markdown",
                              body: notice + "<article class=\"markdown-body\">\(body)</article>", script: script)
 
         case .plainText:
-            html = Self.page(title: fileName, bodyClass: "plaintext",
+            html = Self.page(title: fileName, codeFontSize: codeFontSize, bodyClass: "plaintext",
                              body: notice + "<pre class=\"plaintext\">\(HTML.escape(text))</pre>", script: nil)
 
         case .code(let language):
@@ -52,7 +71,7 @@ public struct PreviewDocument {
             } else {
                 highlightLanguage = size <= Self.maxAutoDetectBytes ? "auto" : nil
             }
-            html = Self.page(title: fileName, bodyClass: "code",
+            html = Self.page(title: fileName, codeFontSize: codeFontSize, bodyClass: "code",
                              body: notice + CodeView.render(text, language: highlightLanguage),
                              script: Resources.appScript(highlight: highlightLanguage != nil))
         }
@@ -71,7 +90,8 @@ public struct PreviewDocument {
         return data.prefix(end)
     }
 
-    static func page(title: String, bodyClass: String, body: String, script: String?) -> String {
+    static func page(title: String, codeFontSize: Double = defaultCodeFontSize,
+                     bodyClass: String, body: String, script: String?) -> String {
         let nonce = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         // Raw HTML in Markdown is allowed, but only our own nonce-tagged script may run,
         // and nothing may be fetched except images/media.
@@ -93,6 +113,7 @@ public struct PreviewDocument {
         <meta name="color-scheme" content="light dark">
         <title>\(HTML.escape(title))</title>
         <style>\(Resources.stylesheet)</style>
+        <style>:root { --code-size: \(String(format: "%g", codeFontSize))px; }</style>
         </head>
         <body class="\(bodyClass)">
         \(body)

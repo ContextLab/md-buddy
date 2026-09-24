@@ -39,7 +39,23 @@ full list of extensions is `LanguageMap` in
 
 **Plain text**: `.log` and other text files, in a monospaced font with soft wrapping.
 
-Everything follows the system's light or dark appearance. Links open in your browser.
+Everything follows the system's light or dark appearance. Links open in your browser. Pinch
+to zoom a preview.
+
+### Code font size
+
+Code, fenced code blocks and plain text are shown at 14 px. To change that, set macOS's
+fixed-pitch font size, which MD Buddy reads if you have set it:
+
+```bash
+defaults write -g NSFixedPitchFontSize -float 16    # any size from 8 to 48
+defaults delete -g NSFixedPitchFontSize             # back to MD Buddy's 14 px
+```
+
+The new size applies to the next file you preview. This is the Cocoa "user fixed-pitch font"
+setting (`NSFont.userFixedPitchFont`); System Settings has no control for it, and any other app
+that asks macOS for the user's fixed-pitch font gets the same size. When it isn't set, macOS
+reports 11 pt; MD Buddy ignores that fallback and uses 14 px.
 
 <table>
   <tr>

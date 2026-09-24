@@ -10,8 +10,9 @@ import UniformTypeIdentifiers
 ///       --height N         viewport height (default 900)
 ///       --full             capture the whole document height
 ///       --appearance light|dark
+///       --code-size N      code font size in px (default: the user's NSFixedPitchFontSize, else 14)
 ///   mdbuddy-render FILE --eval 'JS expression'  print the result of evaluating JS on the page
-let usage = "usage: mdbuddy-render FILE [--png OUT.png [--width N] [--height N] [--full] [--appearance light|dark]] [--eval JS]"
+let usage = "usage: mdbuddy-render FILE [--png OUT.png [--width N] [--height N] [--full] [--appearance light|dark]] [--code-size N] [--eval JS]"
 
 var args = Array(CommandLine.arguments.dropFirst())
 
@@ -39,6 +40,7 @@ var width: CGFloat = 860
 var height: CGFloat = 900
 var fullHeight = false
 var appearance: NSAppearance.Name?
+var codeSize = PreviewDocument.preferredCodeFontSize()
 while !args.isEmpty {
     let flag = args.removeFirst()
     func value() -> String {
@@ -51,6 +53,7 @@ while !args.isEmpty {
     case "--width": width = CGFloat(Double(value()) ?? 860)
     case "--height": height = CGFloat(Double(value()) ?? 900)
     case "--full": fullHeight = true
+    case "--code-size": codeSize = Double(value()) ?? codeSize
     case "--appearance": appearance = value() == "dark" ? .darkAqua : .aqua
     default:
         FileHandle.standardError.write(Data("unknown option \(flag)\n\(usage)\n".utf8))
@@ -63,7 +66,7 @@ let fileURL = URL(fileURLWithPath: path).standardizedFileURL
 if pngPath == nil && evalScript == nil {
     do {
         let data = try Data(contentsOf: fileURL)
-        print(PreviewDocument(fileName: fileURL.lastPathComponent, data: data).html)
+        print(PreviewDocument(fileName: fileURL.lastPathComponent, data: data, codeFontSize: codeSize).html)
         exit(0)
     } catch {
         FileHandle.standardError.write(Data("error: \(error.localizedDescription)\n".utf8))
@@ -77,7 +80,7 @@ app.setActivationPolicy(.prohibited)
 Task { @MainActor in
     do {
         let renderer = WebPageRenderer(width: width, height: height, appearance: appearance)
-        _ = try await renderer.load(fileURL: fileURL)
+        _ = try await renderer.load(fileURL: fileURL, codeFontSize: codeSize)
         if let evalScript {
             let result = try await renderer.evaluate(evalScript)
             print(result.map { "\($0)" } ?? "null")

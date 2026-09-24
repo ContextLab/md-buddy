@@ -99,3 +99,72 @@ final class WebKitTests: XCTestCase {
         XCTAssertEqual(backgrounds, ["rgb(255, 255, 255)", "rgb(13, 17, 23)"])
     }
 }
+
+@MainActor
+final class CodeFontSizeTests: XCTestCase {
+    private func fontSize(of selector: String, in file: String, content: String, size: Double? = nil) async throws -> String {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("mdbuddy-font-\(UUID().uuidString)-\(file)")
+        try Data(content.utf8).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let renderer = WebPageRenderer()
+        if let size {
+            _ = try await renderer.load(fileURL: url, codeFontSize: size)
+        } else {
+            _ = try await renderer.load(fileURL: url)
+        }
+        return try await renderer.evaluate("getComputedStyle(document.querySelector('\(selector)')).fontSize") as? String ?? ""
+    }
+
+    func testDefaultCodeSizeIs14px() async throws {
+        let code = try await fontSize(of: ".code-view .source", in: "a.py", content: "x = 1\n")
+        XCTAssertEqual(code, "14px")
+        let gutter = try await fontSize(of: ".code-view .gutter", in: "a.py", content: "x = 1\n")
+        XCTAssertEqual(gutter, "14px", "line numbers must match the code so rows stay aligned")
+        let fenced = try await fontSize(of: ".markdown-body pre", in: "a.md", content: "```\nx\n```\n")
+        XCTAssertEqual(fenced, "14px")
+        let text = try await fontSize(of: "pre.plaintext", in: "a.log", content: "line\n")
+        XCTAssertEqual(text, "14px")
+    }
+
+    func testCustomCodeSizeApplies() async throws {
+        let code = try await fontSize(of: ".code-view .source", in: "a.py", content: "x = 1\n", size: 17)
+        XCTAssertEqual(code, "17px")
+        let fenced = try await fontSize(of: ".markdown-body pre", in: "a.md", content: "```\nx\n```\n", size: 17)
+        XCTAssertEqual(fenced, "17px")
+    }
+}
+
+final class CodeFontPreferenceTests: XCTestCase {
+    private func size(_ value: Any?) -> Double {
+        PreviewDocument.preferredCodeFontSize(globalPreferences: value.map { ["NSFixedPitchFontSize": $0] } ?? [:])
+    }
+
+    func testUsesExplicitSystemFixedPitchSize() {
+        XCTAssertEqual(size(16.0), 16)
+        XCTAssertEqual(size("15"), 15)
+    }
+
+    func testFallsBackTo14WhenUnsetOrInvalid() {
+        XCTAssertEqual(size(nil), 14)
+        XCTAssertEqual(PreviewDocument.preferredCodeFontSize(globalPreferences: nil), 14)
+        XCTAssertEqual(size("big"), 14)
+        XCTAssertEqual(size(0.0), 14)
+    }
+
+    func testClampsExtremeValues() {
+        XCTAssertEqual(size(4.0), 8)
+        XCTAssertEqual(size(200.0), 48)
+    }
+
+    /// AppKit registers NSFixedPitchFontSize = 11 as a fallback, so a plain
+    /// UserDefaults lookup reports 11 even when the user never set anything.
+    func testIgnoresAppKitRegisteredFallback() throws {
+        let global = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)
+        if global?["NSFixedPitchFontSize"] != nil {
+            throw XCTSkip("NSFixedPitchFontSize is set on this Mac")
+        }
+        UserDefaults.standard.register(defaults: ["NSFixedPitchFontSize": 11])
+        XCTAssertEqual(UserDefaults.standard.double(forKey: "NSFixedPitchFontSize"), 11)
+        XCTAssertEqual(PreviewDocument.preferredCodeFontSize(), 14)
+    }
+}

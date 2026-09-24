@@ -24,9 +24,10 @@ public final class WebPageRenderer: NSObject, WKNavigationDelegate {
     }
 
     /// Loads the document for `fileURL` and waits for the page (including images) to finish.
-    public func load(fileURL: URL) async throws -> PreviewDocument {
+    public func load(fileURL: URL,
+                     codeFontSize: Double = PreviewDocument.defaultCodeFontSize) async throws -> PreviewDocument {
         let data = try Data(contentsOf: fileURL)
-        let document = PreviewDocument(fileName: fileURL.lastPathComponent, data: data)
+        let document = PreviewDocument(fileName: fileURL.lastPathComponent, data: data, codeFontSize: codeFontSize)
         let base = LocalFileSchemeHandler.url(for: fileURL.deletingLastPathComponent(), isDirectory: true)
         try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation

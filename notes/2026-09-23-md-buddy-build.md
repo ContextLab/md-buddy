@@ -33,3 +33,12 @@ Install, test via computer control, document with screenshots, make it easy to i
 ## Possible follow-ups
 - Thumbnail extension (Finder icons rendered from content).
 - KaTeX math / Mermaid (would add ~300 KB–3 MB of JS; deliberately left out).
+
+## 2026-09-24: code font size
+- User asked for larger code text and whether a system preference exists.
+- Only system pref: Cocoa NSFixedPitchFontSize (global domain, no Settings UI). AppKit registers a
+  fallback of 11 in the registration domain, so UserDefaults.object(forKey:) returns 11 when unset;
+  read persistentDomain(forName: globalDomain) instead (regression test added).
+- Default code/plain-text size 14px (was 12.5/13px; markdown blocks were 85% of 15px). Pinch-zoom on.
+- Verified live in Finder: default 21px rows (14px), NSFixedPitchFontSize=18 → 27px rows. Pref restored (deleted).
+- install.sh/uninstall.sh now kill a running preview process (a stale one kept serving old code).

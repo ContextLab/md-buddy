@@ -15,6 +15,7 @@
   --warning: #9a6700;
   --caution: #d1242f;
   --gutter-fg: #8c959f;
+  --code-size: 14px;  /* overridden per page from the user's preference */
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif,
           "Apple Color Emoji", "Segoe UI Emoji";
@@ -170,7 +171,7 @@ body.notice p { padding: 32px; color: var(--fg-muted); text-align: center; }
 .markdown-body pre {
   padding: 16px;
   overflow: auto;
-  font-size: 85%;
+  font-size: var(--code-size);
   line-height: 1.45;
   background: var(--bg-subtle);
   border-radius: 6px;
@@ -236,7 +237,7 @@ body.notice p { padding: 32px; color: var(--fg-muted); text-align: center; }
 pre.plaintext {
   margin: 0;
   padding: 20px 24px;
-  font: 13px/1.5 var(--mono);
+  font: var(--code-size)/1.5 var(--mono);
   white-space: pre-wrap;
   tab-size: 4;
 }
@@ -246,7 +247,7 @@ pre.plaintext {
   display: flex;
   align-items: flex-start;
   min-width: max-content;
-  font: 12.5px/1.5 var(--mono);
+  font: var(--code-size)/1.5 var(--mono);
   tab-size: 4;
 }
 .code-view pre { margin: 0; padding: 16px 0; font: inherit; }

@@ -15,6 +15,7 @@ fi
   || { echo "$DEST is not MD Buddy; refusing to remove it." >&2; exit 1; }
 
 pluginkit -r "$DEST/Contents/PlugIns/MD Buddy Preview.appex" 2>/dev/null || true
+pkill -f "MD Buddy Preview.appex/Contents/MacOS/" 2>/dev/null || true
 "$LSREGISTER" -u "$DEST" 2>/dev/null || true
 rm -rf "$DEST"
 qlmanage -r >/dev/null 2>&1 || true

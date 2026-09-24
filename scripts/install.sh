@@ -70,6 +70,8 @@ pluginkit -a "$DEST/Contents/PlugIns/MD Buddy Preview.appex"
 pluginkit -e use -i "$EXT_ID"
 qlmanage -r >/dev/null 2>&1 || true
 qlmanage -r cache >/dev/null 2>&1 || true
+# A preview process from the previous version can stay alive and keep serving old code.
+pkill -f "MD Buddy Preview.appex/Contents/MacOS/" 2>/dev/null || true
 
 if pluginkit -m -i "$EXT_ID" | grep -q "$EXT_ID"; then
   echo "==> Done. Select a Markdown, code or text file in Finder and press Space."
