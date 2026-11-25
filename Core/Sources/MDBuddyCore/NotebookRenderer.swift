@@ -13,6 +13,9 @@ enum NotebookRenderer {
         /// Whether the page needs KaTeX / highlight.js.
         var math = false
         var highlight = false
+        /// Bytes of attachment data that may still be inlined. Without a limit, one
+        /// attachment referenced thousands of times would multiply into the page.
+        var attachmentBudget = PreviewDocument.maxNotebookBytes
     }
 
     /// The richest static form wins, in this order.
@@ -31,7 +34,7 @@ enum NotebookRenderer {
         for cell in notebook.cells {
             switch cell {
             case let .markdown(source, attachments):
-                let html = markdown(inlineAttachments(source, attachments))
+                let html = markdown(inlineAttachments(source, attachments, budget: &page.attachmentBudget))
                 page.html += "<section class=\"nb-cell nb-markdown\">\(fragment(html, mode: "light", page: &page))</section>\n"
 
             case let .raw(source):
@@ -68,8 +71,10 @@ enum NotebookRenderer {
         return "<div class=\"nb-fragment\" data-mode=\"\(mode)\" hidden>\(HTML.escape(html))</div>"
     }
 
-    /// Replaces `attachment:name` references with the attached image as a data: URI.
-    private static func inlineAttachments(_ source: String, _ attachments: [String: [String: String]]) -> String {
+    /// Replaces `attachment:name` references with the attached image as a data: URI, while
+    /// the budget lasts; references beyond it are left as they are.
+    private static func inlineAttachments(_ source: String, _ attachments: [String: [String: String]],
+                                          budget: inout Int) -> String {
         guard !attachments.isEmpty, source.contains("attachment:") else { return source }
         var result = source
         for name in attachments.keys.sorted(by: { $0.count > $1.count }) {
@@ -82,6 +87,11 @@ enum NotebookRenderer {
                 spellings.append("attachment:\(encoded)")
             }
             for spelling in spellings {
+                let uses = result.components(separatedBy: spelling).count - 1
+                guard uses > 0 else { continue }
+                let (cost, overflow) = uses.multipliedReportingOverflow(by: uri.utf8.count)
+                guard !overflow, cost <= budget else { continue }
+                budget -= cost
                 result = result.replacingOccurrences(of: spelling, with: uri)
             }
         }

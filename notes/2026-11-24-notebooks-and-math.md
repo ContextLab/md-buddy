@@ -32,6 +32,9 @@
   backslash at a line end no longer lets math cross a blank line.
 - Remote images in HTML outputs go through `mdbuddy-remote:` and get the placeholder chip.
 - `.nb-body { contain: layout paint }`: an output's CSS cannot cover the page.
+- After the push, the automated security review flagged two more, both fixed (118 tests):
+  carriage returns now use a write cursor (a long line rewritten 200,000 times took ~48 s),
+  and inlined attachment data is capped in total at the 50 MB notebook limit.
 - `safe_replace.py` (compound lesson script) doubled the indent of a replacement's first line
   and doubled final newlines; fixed there, and the damage in this branch repaired.
 

@@ -276,6 +276,20 @@ final class NotebookRendererTests: XCTestCase {
 
     // MARK: Review findings
 
+    /// One attachment referenced over and over must not multiply into the page: inlined
+    /// attachment data is limited to the notebook size limit in total.
+    func testRepeatedAttachmentReferencesDoNotInflateThePage() {
+        let big = String(repeating: "A", count: 300_000)
+        let source = String(repeating: "![a](attachment:big.png)\n", count: 400)
+        let html = body([markdownCell(source, attachments: ["big.png": ["image/png": big]]),
+                         markdownCell("![b](attachment:p.png)", attachments: ["p.png": ["image/png": tinyPNG]])])
+        XCTAssertLessThan(html.utf8.count, 1_000_000)
+        XCTAssertFalse(html.contains("AAAAAAAAAAAAAAAA"))
+        XCTAssertTrue(html.contains("attachment:big.png"))
+        // An attachment that fits is still inlined.
+        XCTAssertTrue(html.contains("data:image/png;base64,\(tinyPNG)"))
+    }
+
     func testScriptShellDetection() {
         XCTAssertTrue(NotebookRenderer.isScriptShell("<div id=\"p\"></div>\n<SCRIPT type=\"x\">draw('<b>text</b>')</SCRIPT>"))
         XCTAssertTrue(NotebookRenderer.isScriptShell("<style>p > a { color: red }</style><div>\n\t</div>"))
@@ -507,6 +521,16 @@ final class ANSITests: XCTestCase {
 
     /// As a terminal (and Jupyter) shows it: the cursor returns, and what is typed next
     /// replaces only as many characters as it has.
+    /// A long line rewritten many times must cost the characters written, not line × rewrites.
+    func testManyCarriageReturnsAreLinear() {
+        let text = String(repeating: "x", count: 200_000) + String(repeating: "\ry", count: 200_000)
+        let start = Date()
+        let html = ANSI.html(text)
+        XCTAssertLessThan(Date().timeIntervalSince(start), 2.0)
+        XCTAssertEqual(html.count, 200_000)
+        XCTAssertTrue(html.hasPrefix("yxxx"))
+    }
+
     func testCarriageReturnOverwritesInPlace() {
         XCTAssertEqual(ANSI.html("0%\r50%\r100%\r"), "100%")
         XCTAssertEqual(ANSI.html("abcdef\rxy"), "xycdef")

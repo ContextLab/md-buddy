@@ -91,26 +91,21 @@ enum ANSI {
         guard text.unicodeScalars.contains("\r") else { return text }
         var out = String.UnicodeScalarView()
         var line: [Unicode.Scalar] = []
-        var segment: [Unicode.Scalar] = []
-        func overwrite() {
-            guard !segment.isEmpty else { return }
-            line = segment + line.dropFirst(segment.count)
-            segment = []
-        }
+        var column = 0  // where the next character is written
         for scalar in text.unicodeScalars {
             switch scalar {
             case "\r":
-                overwrite()
+                column = 0
             case "\n":
-                overwrite()
                 out.append(contentsOf: line)
                 out.append(scalar)
-                line = []
+                line.removeAll(keepingCapacity: true)
+                column = 0
             default:
-                segment.append(scalar)
+                if column < line.count { line[column] = scalar } else { line.append(scalar) }
+                column += 1
             }
         }
-        overwrite()
         out.append(contentsOf: line)
         return String(out)
     }
