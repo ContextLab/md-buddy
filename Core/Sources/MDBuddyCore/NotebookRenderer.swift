@@ -34,7 +34,7 @@ enum NotebookRenderer {
         for cell in notebook.cells {
             switch cell {
             case let .markdown(source, attachments):
-                let html = markdown(inlineAttachments(source, attachments, budget: &page.attachmentBudget))
+                let html = inlineAttachments(markdown(source), attachments, budget: &page.attachmentBudget)
                 page.html += "<section class=\"nb-cell nb-markdown\">\(fragment(html, mode: "light", page: &page))</section>\n"
 
             case let .raw(source):
@@ -71,28 +71,31 @@ enum NotebookRenderer {
         return "<div class=\"nb-fragment\" data-mode=\"\(mode)\" hidden>\(HTML.escape(html))</div>"
     }
 
-    /// Replaces `attachment:name` references with the attached image as a data: URI, while
-    /// the budget lasts; references beyond it are left as they are.
-    private static func inlineAttachments(_ source: String, _ attachments: [String: [String: String]],
+    /// Points `src="attachment:name"` in a rendered Markdown cell at the attached image, as a
+    /// data: URI, while the budget lasts; references beyond it are left as they are. This
+    /// works on the rendered HTML because that is where the uses can be counted: a
+    /// reference-style image names its attachment once in the source and any number of times
+    /// in the page.
+    private static func inlineAttachments(_ html: String, _ attachments: [String: [String: String]],
                                           budget: inout Int) -> String {
-        guard !attachments.isEmpty, source.contains("attachment:") else { return source }
-        var result = source
-        for name in attachments.keys.sorted(by: { $0.count > $1.count }) {
-            guard let bundle = attachments[name],
-                  let mime = attachmentTypes.first(where: { bundle[$0] != nil }),
+        guard !attachments.isEmpty, html.contains("attachment:") else { return html }
+        var result = html
+        for (name, bundle) in attachments.sorted(by: { $0.key < $1.key }) {
+            guard let mime = attachmentTypes.first(where: { bundle[$0] != nil }),
                   let data = base64(bundle[mime]) else { continue }
-            let uri = "data:\(mime);base64,\(data)"
-            var spellings = ["attachment:\(name)"]
+            let uri = "src=\"data:\(mime);base64,\(data)\""
+            var spellings = [name]
             if let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed), encoded != name {
-                spellings.append("attachment:\(encoded)")
+                spellings.append(encoded)
             }
             for spelling in spellings {
-                let uses = result.components(separatedBy: spelling).count - 1
+                let reference = "src=\"attachment:\(HTML.escape(spelling))\""
+                let uses = result.components(separatedBy: reference).count - 1
                 guard uses > 0 else { continue }
                 let (cost, overflow) = uses.multipliedReportingOverflow(by: uri.utf8.count)
                 guard !overflow, cost <= budget else { continue }
                 budget -= cost
-                result = result.replacingOccurrences(of: spelling, with: uri)
+                result = result.replacingOccurrences(of: reference, with: uri)
             }
         }
         return result

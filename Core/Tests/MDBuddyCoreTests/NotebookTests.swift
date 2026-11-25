@@ -290,6 +290,18 @@ final class NotebookRendererTests: XCTestCase {
         XCTAssertTrue(html.contains("data:image/png;base64,\(tinyPNG)"))
     }
 
+    /// A reference-style image names the attachment once in the source and many times in
+    /// the page, so the limit has to count what is rendered.
+    func testReferenceStyleAttachmentUsesDoNotInflateThePage() {
+        let big = String(repeating: "A", count: 300_000)
+        let source = String(repeating: "![a][big]\n", count: 400) + "\n[big]: attachment:big.png\n"
+        let html = body([markdownCell(source, attachments: ["big.png": ["image/png": big]]),
+                         markdownCell("![b][small]\n\n[small]: attachment:p.png", attachments: ["p.png": ["image/png": tinyPNG]])])
+        XCTAssertLessThan(html.utf8.count, 1_000_000)
+        XCTAssertFalse(html.contains("AAAAAAAAAAAAAAAA"))
+        XCTAssertTrue(html.contains("data:image/png;base64,\(tinyPNG)"))
+    }
+
     func testScriptShellDetection() {
         XCTAssertTrue(NotebookRenderer.isScriptShell("<div id=\"p\"></div>\n<SCRIPT type=\"x\">draw('<b>text</b>')</SCRIPT>"))
         XCTAssertTrue(NotebookRenderer.isScriptShell("<style>p > a { color: red }</style><div>\n\t</div>"))
