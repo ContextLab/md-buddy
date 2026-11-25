@@ -25,7 +25,12 @@ SOURCE_ID = OURS + "source"
 # better itself (.csv tables, .svg, .plist). Keep in sync with RoutingTests.reserved.
 RESERVED = {"ts", "mts", "txt", "text", "html", "htm", "xhtml", "svg", "plist", "", "csv", "tsv", "rtx",
             "out", "xml", "storyboard", "xib", "entitlements", "csproj", "vcxproj", "xsd", "xsl",
-            "xslt", "rss", "atom", "scpt", "ipynb", "env"}
+            "xslt", "rss", "atom", "scpt", "env"}
+
+# Extensions another app may own for an unrelated binary format (.pxd is Cython here, but a
+# Pixelmator document where Pixelmator is installed). Always imported as ours; the other app's
+# identifier is never claimed, so its files keep their own previews.
+SHARED = {"pxd"}
 
 # Always claimed, whatever this Mac resolves: common identifiers other apps declare.
 BASE_TYPES = [
@@ -34,6 +39,7 @@ BASE_TYPES = [
     "public.plain-text", "public.source-code", "public.script", "public.shell-script",
     "public.log", "com.apple.log",
     "org.go.source", "org.rust-lang.rust", "org.julialang.julia", "com.microsoft.typescript",
+    "org.jupyter.ipynb",
 ]
 
 
@@ -49,7 +55,7 @@ def main() -> None:
         kind, ext, identifier, state = row.split("\t")
         if ext in RESERVED or ext == "md":
             continue
-        if state == "dynamic" or identifier.startswith(OURS):
+        if state == "dynamic" or identifier.startswith(OURS) or ext in SHARED:
             (markdown_exts if kind == "markdown" else source_exts).append(ext)
         elif identifier not in claimed:
             claimed.append(identifier)

@@ -8,42 +8,12 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${1:-$ROOT/docs/screenshots}"
 mkdir -p "$OUT" "$ROOT/build"
 
-swiftc -O "$ROOT/scripts/qlwindow.swift" -o "$ROOT/build/qlwindow"
-swiftc -O "$ROOT/scripts/scroll.swift" -o "$ROOT/build/scroll"
 (cd "$ROOT/Core" && swift build -c release >/dev/null)
 RENDER="$(cd "$ROOT/Core" && swift build -c release --show-bin-path)/mdbuddy-render"
 
-press_space() { osascript -e 'tell application "System Events" to keystroke space'; }
-
-# capture FILE NAME [SCROLL_LINES]: select FILE in Finder, open Quick Look, capture the panel.
+# capture FILE NAME [SCROLL_LINES]: a real Finder Quick Look panel, via scripts/qlcapture.sh.
 capture() {
-  local file="$1" name="$2" lines="${3:-0}" before row=""
-  osascript -e "tell application \"Finder\"
-      activate
-      set f to POSIX file \"$file\" as alias
-      reveal f
-      select f
-    end tell" >/dev/null
-  sleep 0.8
-  # The panel's title isn't visible to CoreGraphics, so find it as the window Space adds.
-  before="$("$ROOT/build/qlwindow" Finder | cut -d' ' -f1)"
-  press_space
-  for _ in $(seq 1 40); do
-    sleep 0.25
-    row="$("$ROOT/build/qlwindow" Finder | grep -vwF "$before" | head -1 || true)"
-    [[ -n "$row" ]] && break
-  done
-  [[ -n "$row" ]] || { echo "no Quick Look panel for $file" >&2; return 1; }
-  read -r id x y w h <<< "$row"
-  sleep 1.5
-  if [[ "$lines" != 0 ]]; then
-    "$ROOT/build/scroll" $((x + w / 2)) $((y + h / 2)) "$lines"
-    sleep 0.8
-  fi
-  screencapture -x -o -l "$id" "$OUT/$name.png"
-  press_space  # close the panel
-  sleep 0.5
-  echo "  $OUT/$name.png"
+  "$ROOT/scripts/qlcapture.sh" "$1" "$OUT/$2.png" "${3:-0}"
 }
 
 echo "==> Finder Quick Look panels (current system appearance)"

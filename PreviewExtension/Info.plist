@@ -45,6 +45,7 @@
 				<string>org.rust-lang.rust</string>
 				<string>org.julialang.julia</string>
 				<string>com.microsoft.typescript</string>
+				<string>org.jupyter.ipynb</string>
 				<string>com.apple.applescript.text</string>
 				<string>public.bash-script</string>
 				<string>org.tug.tex.bibtex</string>

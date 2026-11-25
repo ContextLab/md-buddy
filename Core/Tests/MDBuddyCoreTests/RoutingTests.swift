@@ -13,7 +13,12 @@ final class RoutingTests: XCTestCase {
     static let reserved: Set<String> = ["ts", "mts", "txt", "text", "html", "htm", "xhtml", "svg", "plist", "",
                                         "csv", "tsv", "rtx", "out", "xml", "storyboard", "xib",
                                         "entitlements", "csproj", "vcxproj", "xsd", "xsl", "xslt", "rss",
-                                        "atom", "scpt", "ipynb", "env"]
+                                        "atom", "scpt", "env"]
+
+    /// Extensions another installed app may own for an unrelated format (.pxd: Cython here,
+    /// a Pixelmator document where Pixelmator is installed). MD Buddy imports them but never
+    /// claims the other app's type. Keep in sync with SHARED in scripts/gen_types.py.
+    static let shared: Set<String> = ["pxd"]
 
     func testEveryKnownExtensionIsClaimed() throws {
         let root = examplesDir.deletingLastPathComponent()
@@ -28,7 +33,7 @@ final class RoutingTests: XCTestCase {
         let extensions = Set(LanguageMap.byExtension.keys).union(DocumentKind.markdownExtensions)
             .union(DocumentKind.plainTextExtensions)
         var unclaimed: [String] = []
-        for ext in extensions.sorted() where !Self.reserved.contains(ext) {
+        for ext in extensions.sorted() where !Self.reserved.contains(ext) && !Self.shared.contains(ext) {
             guard let type = UTType(filenameExtension: ext) else { continue }
             if !claimed.contains(type.identifier) { unclaimed.append(".\(ext) → \(type.identifier)") }
         }
