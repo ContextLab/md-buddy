@@ -338,7 +338,9 @@ pre.plaintext {
 .nb-output + .nb-output { margin-top: 6px; }
 .nb-output .nb-prompt { padding-top: 3px; }
 /* Wide outputs scroll sideways; the bottom padding keeps the scroll bar off the last line. */
-.nb-body { min-width: 0; overflow-x: auto; overflow-y: hidden; padding-bottom: 6px; }
+/* contain: an HTML output's own CSS can restyle the element that holds it (position: fixed,
+   for one); containment keeps it laid out and painted inside its output area. */
+.nb-body { min-width: 0; overflow-x: auto; overflow-y: hidden; padding-bottom: 6px; contain: layout paint; }
 .markdown-body .nb-body > pre {
   margin: 0;
   padding: 2px 0;

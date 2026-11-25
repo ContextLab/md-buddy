@@ -90,6 +90,44 @@ final class MathScannerTests: XCTestCase {
         }
     }
 
+    // MARK: Review findings
+
+    /// A placeholder that lands inside a tag (image alt text, a title attribute) must not
+    /// become a <span>: that would end the attribute and spill markup into the page.
+    func testMathInsideAnAttributeStaysText() {
+        let image = MarkdownRenderer.render("![Plot of $y=x^2$](fig.png) and $z_1$")
+        XCTAssertTrue(image.contains("alt=\"Plot of $y=x^2$\""), image)
+        XCTAssertTrue(image.contains("<span class=\"math math-inline\">z_1</span>"), image)
+        let title = MarkdownRenderer.render("<a title=\"$a<b$\" href=\"#x\">link</a> then $c$")
+        XCTAssertTrue(title.contains("title=\"$a&lt;b$\""), title)
+        XCTAssertTrue(title.contains("<span class=\"math math-inline\">c</span>"), title)
+        XCTAssertEqual(title.components(separatedBy: "<span class=\"math").count - 1, 1, title)
+    }
+
+    func testInlineMathDoesNotRunAcrossListItems() {
+        XCTAssertEqual(spans("- costs $x\n- and y$ here"), [])
+        XCTAssertEqual(spans("1. first $a\n2. second b$"), [])
+        XCTAssertEqual(spans("- one $a$\n- two $b$"),
+                       [MathSpan(tex: "a", display: false), MathSpan(tex: "b", display: false)])
+        // A display equation may still continue on a line that starts with an operator.
+        XCTAssertEqual(spans("$$\na\n+ b\n- c\n$$"), [MathSpan(tex: "\na\n+ b\n- c\n", display: true)])
+    }
+
+    func testMathInABlockquoteLosesItsQuoteMarkers() {
+        XCTAssertEqual(spans("> $$\n> x = 1\n> $$"), [MathSpan(tex: "\nx = 1\n", display: true)])
+        XCTAssertEqual(spans("> > $a +\n> > b$"), [MathSpan(tex: "a +\nb", display: false)])
+        // Not in a quote: a line starting with ">" is part of the formula.
+        XCTAssertEqual(spans("$$\na\n> b\n$$"), [MathSpan(tex: "\na\n> b\n", display: true)])
+        let html = MarkdownRenderer.render("> $$\n> x = 1\n> $$")
+        XCTAssertTrue(html.contains("<blockquote>"), html)
+        XCTAssertTrue(html.contains("<span class=\"math math-display\">\nx = 1\n</span>"), html)
+    }
+
+    func testBackslashAtLineEndDoesNotCarryMathAcrossAParagraph() {
+        XCTAssertEqual(spans("open $a \\\n\nb$ close"), [])
+        XCTAssertEqual(spans("$$a \\\n\nb$$"), [])
+    }
+
     func testUnclosedCodeSpanAndEscapes() {
         XCTAssertEqual(spans("a ` lone tick and $x$"), [MathSpan(tex: "x", display: false)])
         XCTAssertEqual(spans("$a\\$b$"), [MathSpan(tex: "a\\$b", display: false)])
@@ -99,7 +137,7 @@ final class MathScannerTests: XCTestCase {
 final class MathPageTests: XCTestCase {
     func testMathPageIncludesKaTeXAndOthersDoNot() {
         let math = PreviewDocument(fileName: "m.md", data: Data("$x^2$".utf8)).html
-                // "/* KaTeX " opens both vendored files; "KaTeX_Main" is a font only its stylesheet names.
+        // "/* KaTeX " opens both vendored files; "KaTeX_Main" is a font only its stylesheet names.
         // (The page's own script and stylesheet mention "katex" on every page.)
         XCTAssertEqual(math.components(separatedBy: "/* KaTeX ").count - 1, 2)
         XCTAssertTrue(math.contains("data:font/woff2;base64,"))
@@ -190,7 +228,7 @@ final class MathWebKitTests: XCTestCase {
     /// than the page and summon a scroll bar.
     func testNumberedEquationFitsWithoutScrolling() async throws {
         let page = try await render("$$\n\\begin{align}\ny_i &= \\beta_0 + \\beta_1 x_i \\\\\ne_i &\\sim \\mathcal{N}(0, \\sigma^2)\n\\end{align}\n$$")
-                let numbers = try await string(page, "String(document.querySelectorAll('.math-display .eqn-num').length)")
+        let numbers = try await string(page, "String(document.querySelectorAll('.math-display .eqn-num').length)")
         XCTAssertEqual(numbers, "2")
         let overflow = try await string(page, "(() => { const e = document.querySelector('.math-display'); return String(e.scrollWidth - e.clientWidth); })()")
         XCTAssertEqual(overflow, "0")

@@ -29,9 +29,8 @@ of [highlight.js](https://highlightjs.org), and math is typeset with a bundled c
 - GitHub alerts (`> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`)
 - YAML (`---`) and TOML (`+++`) front matter, shown as a collapsible block
 - Math typeset as LaTeX: `$…$` and `\(…\)` inline, `$$…$$` and `\[…\]` as display equations.
-  Prices such as "$5 and $10" are left alone, and so is anything inside code
+  Prices such as "$5 and $10" are left alone, and so is anything in a code span or code block
 - Heading anchors, so in-page links such as `[see below](#tables)` scroll the preview
-
 - `.md`, `.markdown`, `.mdown`, `.mkd`, `.mkdn`, `.mdwn`, `.mdtext`, `.mdtxt`, `.Rmd`, `.qmd`
 
 **Jupyter notebooks** (`.ipynb`), shown as a static, fully rendered notebook
@@ -84,7 +83,7 @@ reports 11 pt; MD Buddy ignores that fallback and uses 14 px.
     <td><img src="docs/screenshots/quicklook-python.png" alt="A Python file in Quick Look"></td>
     <td><img src="docs/screenshots/code-light.png" alt="A Python file, light mode"></td>
   </tr>
-    <tr>
+  <tr>
     <td align="center">A Python file (dark)</td>
     <td align="center">The same file (light)</td>
   </tr>
@@ -185,9 +184,8 @@ This removes `/Applications/MD Buddy.app`, unregisters the extension and resets 
 Finder ── Space ──▶ Quick Look ──▶ MD Buddy Preview.appex
                                        │
                  PreviewDocument ◀─────┘  read file, decode text (UTF-8/16/32, Latin-1…)
-                                    ├─ Markdown ─▶ math lifted out ─▶ cmark-gfm ─▶ HTML (KaTeX typesets in the page)
+                  ├─ Markdown ─▶ math lifted out ─▶ cmark-gfm ─▶ HTML (KaTeX typesets in the page)
                   ├─ notebook ─▶ JSON ─▶ cells: Markdown as above, code, outputs
-
                   ├─ code     ─▶ line-numbered <pre>, highlight.js
                   └─ text     ─▶ wrapped <pre>
                         │

@@ -4,8 +4,9 @@ import Foundation
 ///
 /// The text is HTML-escaped; SGR color codes become `<span class="ansi-…">` (the 16 named
 /// colors and bold, styled in style.css for light and dark) or an inline color for 256-color
-/// and truecolor codes. Every other escape sequence is dropped. A carriage return restarts
-/// the line, so a progress bar shows only its final state.
+/// and truecolor codes. Every other escape sequence is dropped. A carriage return moves back
+/// to the start of the line and what follows is written over what was there, as in a
+/// terminal, so a progress bar shows only its final state.
 enum ANSI {
     private static let names = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]
 
@@ -83,15 +84,35 @@ enum ANSI {
         return out
     }
 
-    /// Applies "\r\n" as a newline and a lone "\r" as "start this line again".
+    /// Applies carriage returns the way a terminal (and Jupyter) does: the text after one is
+    /// written over the start of the line, and whatever it does not cover stays. So
+    /// "abcdef\rxy" shows "xycdef", and a "\r" with nothing after it changes nothing.
     private static func overwriteLines(_ text: String) -> String {
-        guard text.contains("\r") else { return text }
-        return text.replacingOccurrences(of: "\r\n", with: "\n")
-            .split(separator: "\n", omittingEmptySubsequences: false)
-            .map { line in
-                line.split(separator: "\r", omittingEmptySubsequences: false).last.map(String.init) ?? ""
+        guard text.unicodeScalars.contains("\r") else { return text }
+        var out = String.UnicodeScalarView()
+        var line: [Unicode.Scalar] = []
+        var segment: [Unicode.Scalar] = []
+        func overwrite() {
+            guard !segment.isEmpty else { return }
+            line = segment + line.dropFirst(segment.count)
+            segment = []
+        }
+        for scalar in text.unicodeScalars {
+            switch scalar {
+            case "\r":
+                overwrite()
+            case "\n":
+                overwrite()
+                out.append(contentsOf: line)
+                out.append(scalar)
+                line = []
+            default:
+                segment.append(scalar)
             }
-            .joined(separator: "\n")
+        }
+        overwrite()
+        out.append(contentsOf: line)
+        return String(out)
     }
 
     private static func apply(_ parameters: String, to style: inout Style) {

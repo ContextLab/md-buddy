@@ -274,6 +274,49 @@ final class NotebookRendererTests: XCTestCase {
         XCTAssertEqual(plain.components(separatedBy: "<div class=\"nb-prompt\">[2]:</div>").count - 1, 2)
     }
 
+    // MARK: Review findings
+
+    func testScriptShellDetection() {
+        XCTAssertTrue(NotebookRenderer.isScriptShell("<div id=\"p\"></div>\n<SCRIPT type=\"x\">draw('<b>text</b>')</SCRIPT>"))
+        XCTAssertTrue(NotebookRenderer.isScriptShell("<style>p > a { color: red }</style><div>\n\t</div>"))
+        XCTAssertTrue(NotebookRenderer.isScriptShell("<div></div><script>never closed"))
+        XCTAssertTrue(NotebookRenderer.isScriptShell("<iframe src=\"https://example.com\"></iframe>"))
+        XCTAssertFalse(NotebookRenderer.isScriptShell("<p>text</p><script>x()</script>"))
+        XCTAssertFalse(NotebookRenderer.isScriptShell("<div><IMG src=\"a.png\"></div>"))
+        XCTAssertFalse(NotebookRenderer.isScriptShell("<table><tr><td></td></tr></table>"))
+        XCTAssertFalse(NotebookRenderer.isScriptShell("<svg><rect/></svg>"))
+        XCTAssertFalse(NotebookRenderer.isScriptShell("a < b"))
+        XCTAssertFalse(NotebookRenderer.isScriptShell("<scripted>visible</scripted>"))
+    }
+
+    /// Hostile or broken HTML must not make the check slow: it is one pass over the text.
+    func testScriptShellCheckIsLinear() {
+        let inputs = [
+            "a " + String(repeating: "< ", count: 150_000),
+            String(repeating: "<script ", count: 100_000),
+            String(repeating: "<style>", count: 100_000),
+            String(repeating: "<div>", count: 200_000),
+            "<div>" + String(repeating: " ", count: 500_000) + "<",
+        ]
+        for input in inputs {
+            let start = Date()
+            _ = NotebookRenderer.isScriptShell(input)
+            XCTAssertLessThan(Date().timeIntervalSince(start), 1.0, "slow on \(input.prefix(12))…")
+        }
+        let start = Date()
+        let doc = PreviewDocument(fileName: "n.ipynb", data: notebookData([
+            codeCell("h", outputs: [dataOutput(["text/html": inputs[0]])])]))
+        XCTAssertLessThan(Date().timeIntervalSince(start), 2.0)
+        XCTAssertTrue(doc.html.contains("data-mode=\"shadow\""))
+    }
+
+    func testRemoteImagesInHTMLOutputsUseThePlaceholderScheme() {
+        let html = body([codeCell("i", outputs: [
+            dataOutput(["text/html": "<img src=\"https://example.com/a.png\"/><img src='HTTP://example.com/b.png'>"])])])
+        XCTAssertTrue(html.contains("src=&quot;mdbuddy-remote:https://example.com/a.png&quot;"), html)
+        XCTAssertTrue(html.contains("src=&#39;mdbuddy-remote:HTTP://example.com/b.png&#39;"), html)
+    }
+
     func testScriptShellFallsBackToImage() {
         let shell = "<div id=\"p\"></div>\n<script type=\"text/javascript\">Plotly.newPlot('p', [])</script>"
         let html = body([codeCell("fig", outputs: [dataOutput(["text/html": shell, "image/png": tinyPNG])])])
@@ -461,6 +504,15 @@ final class ANSITests: XCTestCase {
     func testCarriageReturnsOverwriteTheLine() {
         XCTAssertEqual(ANSI.html("10%\r50%\r100%\nnext\r\nlast"), "100%\nnext\nlast")
     }
+
+    /// As a terminal (and Jupyter) shows it: the cursor returns, and what is typed next
+    /// replaces only as many characters as it has.
+    func testCarriageReturnOverwritesInPlace() {
+        XCTAssertEqual(ANSI.html("0%\r50%\r100%\r"), "100%")
+        XCTAssertEqual(ANSI.html("abcdef\rxy"), "xycdef")
+        XCTAssertEqual(ANSI.html("loading...\rdone\n"), "doneing...\n")
+        XCTAssertEqual(ANSI.html("\r\rstart"), "start")
+    }
 }
 
 /// Notebooks in a real WKWebView: the page script inserts the fragments, typesets and highlights.
@@ -563,6 +615,39 @@ final class NotebookWebKitTests: XCTestCase {
         XCTAssertEqual(last, "visible end|true|true")
         let table = try await string(page, "\(roots)[0].querySelector('td').textContent")
         XCTAssertEqual(table, "cell")
+    }
+
+    /// An output's own CSS can restyle the element that holds it; even so, it must stay
+    /// inside its output area and not cover the notebook.
+    func testOutputCannotCoverThePage() async throws {
+        let page = try await render([
+            markdownCell("# Title"),
+            codeCell("h", outputs: [dataOutput([
+                "text/html": "<style>:host{position:fixed!important;inset:0;background:red;z-index:9999}</style><p>out</p>"])]),
+            markdownCell("after"),
+        ])
+        let size = try await string(page, "(() => { const r = document.querySelector('.nb-fragment[data-mode=shadow]').getBoundingClientRect(); return String(r.height < 200 && r.top > 40); })()")
+        XCTAssertEqual(size, "true")
+        let top = try await string(page, "document.elementFromPoint(450, 20).closest('.nb-fragment[data-mode=shadow]') === null ? 'clear' : 'covered'")
+        XCTAssertEqual(top, "clear")
+    }
+
+    func testRemoteImageInHTMLOutputBecomesAPlaceholder() async throws {
+        let page = try await render([codeCell("i", outputs: [
+            dataOutput(["text/html": "<p>see <img src=\"https://example.invalid/a.png\" alt=\"remote plot\"></p>"])])])
+        try await Task.sleep(nanoseconds: 300_000_000)
+        let chip = try await string(page, "\(roots)[0].querySelector('.image-placeholder.remote')?.textContent ?? 'none'")
+        XCTAssertEqual(chip, "remote plot")
+        let styled = try await string(page, "getComputedStyle(\(roots)[0].querySelector('.image-placeholder')).display")
+        XCTAssertEqual(styled, "inline-flex")
+    }
+
+    func testMathInImageAltTextKeepsTheImage() async throws {
+        let page = try await render([markdownCell("![Plot of $y=x^2$](images/landscape.png)")])
+        let alt = try await string(page, "document.querySelector('.nb-markdown img').alt")
+        XCTAssertEqual(alt, "Plot of $y=x^2$")
+        let text = try await string(page, "document.querySelector('.nb-markdown').innerText.trim()")
+        XCTAssertEqual(text, "")
     }
 
     func testScriptsInNotebookNeverRun() async throws {

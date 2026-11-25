@@ -125,7 +125,7 @@ enum NotebookRenderer {
         switch mime {
         case "text/html":
             guard let html = Notebook.text(value), !isScriptShell(html) else { return nil }
-            return fragment(html, mode: "shadow", page: &page)
+            return fragment(RemoteImages.rewrite(html), mode: "shadow", page: &page)
 
         case "image/svg+xml":
             guard let svg = Notebook.text(value), !svg.isEmpty else { return nil }
@@ -210,23 +210,59 @@ enum NotebookRenderer {
         return String(decoding: text.utf8.filter(allowed), as: UTF8.self)
     }
 
-    private static let scriptOrStyle = try! NSRegularExpression(
-        pattern: #"<(script|style)\b[^>]*>.*?(</\1\s*>|\z)"#, options: [.caseInsensitive, .dotMatchesLineSeparators])
-    private static let visibleElement = try! NSRegularExpression(
-        pattern: #"<(img|table|svg|video|audio|canvas|math)\b"#, options: [.caseInsensitive])
-    private static let anyTag = try! NSRegularExpression(pattern: #"<[^>]*>"#)
+    private static let visibleElements = ["img", "table", "svg", "video", "audio", "canvas", "math"].map { Array($0.utf8) }
+    private static let scriptName = Array("script".utf8)
+    private static let styleName = Array("style".utf8)
 
     /// True for HTML that shows nothing unless its scripts run (Plotly, Bokeh, widgets):
     /// no text and no image, table or drawing once `<script>` and `<style>` are removed.
     /// Scripts never run in a preview, so such an output falls back to its image or text form.
+    ///
+    /// One pass over the bytes, whatever the input: notebook HTML can be large and malformed.
     static func isScriptShell(_ html: String) -> Bool {
-        func strip(_ regex: NSRegularExpression, _ text: String) -> String {
-            regex.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
+        let bytes = Array(html.utf8)
+        let n = bytes.count
+        let lastClose = bytes.lastIndex(of: 0x3E) ?? -1  // the last ">"
+
+        /// Whether the tag name `name` (lower case) starts at `index`, ending at a non-name byte.
+        func name(_ name: [UInt8], at index: Int) -> Bool {
+            guard index + name.count <= n else { return false }
+            for k in 0..<name.count where bytes[index + k] | 0x20 != name[k] { return false }
+            guard index + name.count < n else { return true }
+            let next = bytes[index + name.count]
+            let alphanumeric = (next | 0x20 >= 0x61 && next | 0x20 <= 0x7A) || (next >= 0x30 && next <= 0x39)
+            return !alphanumeric && next != 0x5F && next != 0x2D
         }
-        let content = strip(scriptOrStyle, html)
-        if visibleElement.firstMatch(in: content, range: NSRange(content.startIndex..., in: content)) != nil {
-            return false
+
+        var i = 0
+        while i < n {
+            let byte = bytes[i]
+            if byte == 0x20 || (byte >= 0x09 && byte <= 0x0D) {
+                i += 1
+                continue
+            }
+            guard byte == 0x3C else { return false }  // text
+            if let hidden = [scriptName, styleName].first(where: { name($0, at: i + 1) }) {
+                // Skip to just past the element's closing tag, or to the end if there is none.
+                var j = i + 1 + hidden.count
+                var end = n
+                while j + 1 < n {
+                    if bytes[j] == 0x3C, bytes[j + 1] == 0x2F, name(hidden, at: j + 2) {
+                        end = j
+                        break
+                    }
+                    j += 1
+                }
+                i = end
+                if i >= n { return true }
+            } else if visibleElements.contains(where: { name($0, at: i + 1) }) {
+                return false
+            }
+            // An opening "<" that is never closed is text.
+            guard i < lastClose else { return false }
+            while bytes[i] != 0x3E { i += 1 }
+            i += 1
         }
-        return strip(anyTag, content).allSatisfy { $0.isWhitespace }
+        return true
     }
 }

@@ -13,13 +13,27 @@
 - Notebook rendering in Swift (JSONSerialization), into the existing page shell.
 - Execution: native (this session builds every task; one fresh review at the end).
 
-## State (branch `notebooks-and-math`, nothing pushed)
+## State (branch `notebooks-and-math`)
 - Design: docs/superpowers/specs/2026-11-24-notebooks-and-math-design.md
 - Plan: docs/superpowers/plans/2026-11-24-notebooks-and-math.md
-- Tasks 1–7 built and committed. 105 tests pass (`cd Core && swift test`), `make build` clean,
-  app installed in /Applications from this branch.
-- Left: final whole-branch review; then ask Jeremy about (a) the app's internal version
-  (still 1.0.0 in project.yml) for the v0.2 release, (b) push / PR / tag / publish.
+- Tasks 1–7 built; final whole-branch review done and its findings fixed (below).
+  116 tests pass (`cd Core && swift test`), app installed in /Applications from this branch.
+- 2026-11-25, Jeremy: app version → 1.1.0 (was 1.0.0); push the branch when the review is
+  clean; "sync the tags with the actual version numbers". Done: tag `v0.1` renamed to `v1.0.0`
+  (same commit 7adecb0, GitHub release retitled "MD Buddy v1.0.0", asset unchanged).
+- Left for Jeremy: merge to main (PR or direct), then tag `v1.1.0` on main and publish a release.
+
+## Final review (independent reviewer, 2026-11-25): fixed
+- `isScriptShell` used regexes that took 285 s on 300 KB of unclosed `<`; now one pass over bytes.
+- Carriage returns overwrite in place like a terminal ("abcdef\rxy" → "xycdef"; trailing "\r"
+  no longer blanks the line).
+- Math inside a tag (image alt text, raw HTML attribute) is restored as plain `$…$` text.
+- Inline math stops at the next list item; math in a block quote drops the `>` markers; a
+  backslash at a line end no longer lets math cross a blank line.
+- Remote images in HTML outputs go through `mdbuddy-remote:` and get the placeholder chip.
+- `.nb-body { contain: layout paint }`: an output's CSS cannot cover the page.
+- `safe_replace.py` (compound lesson script) doubled the indent of a replacement's first line
+  and doubled final newlines; fixed there, and the damage in this branch repaired.
 
 ## What was built
 - `MathScanner.swift`: lifts `$…$`, `$$…$$`, `\(…\)`, `\[…\]` (and bare `\begin{…}` blocks in
@@ -58,7 +72,12 @@
 
 ## Known limits / deferred
 - Plotly outputs saved without a static image show "Output of type text/html can't be shown".
-- Math inside an HTML attribute value (`alt="$x$"`) gets a span injected into the attribute.
+- `$HOME:$PATH` in prose is read as math (the GitHub/Pandoc rule as specified).
+- Raw `<pre>`/`<code>` HTML in Markdown is not protected from math (backtick spans and fenced
+  or indented blocks are).
+- Math inside HTML outputs (`<td>$\alpha$</td>`) is not typeset; Jupyter typesets it.
+- CSP still allows remote `img-src *`; Quick Look's sandbox has no network, so `srcset`,
+  `<video poster>` and CSS `url()` in outputs simply fail to load (no placeholder).
 - The math pre-scan made large Markdown about 2× slower to convert (still 0.26 s per 1.3 MB).
 - A notebook containing bare `NaN` in its JSON (Python writes it, strict JSON forbids it) would
   fall back to the JSON view; not seen in 178 real notebooks.
