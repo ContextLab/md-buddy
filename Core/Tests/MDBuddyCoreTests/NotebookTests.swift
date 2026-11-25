@@ -302,8 +302,31 @@ final class NotebookRendererTests: XCTestCase {
     }
 
     func testJSONOutputPrettyPrinted() {
-        let html = body([codeCell("j", outputs: [dataOutput(["application/json": ["b": 1, "a": ["x"]]])])])
-        XCTAssertTrue(html.contains("<pre><code class=\"language-json\">{\n  &quot;a&quot; : [\n    &quot;x&quot;\n  ],\n  &quot;b&quot; : 1\n}</code></pre>"), html)
+                // Written as JSON text, as a notebook file holds it: 0.834 must come back as 0.834,
+        // not as the nearest double printed to 17 digits.
+        let file = """
+        {"nbformat": 4, "metadata": {}, "cells": [{"cell_type": "code", "source": "j", "outputs": [
+          {"output_type": "display_data", "metadata": {},
+           "data": {"application/json": {"b": 1, "a": ["x/y", 0.834, 60.0, true, null, -2, 1e-7], "e": {}, "f": []}}}]}]}
+        """
+        let html = pageBody(PreviewDocument(fileName: "j.ipynb", data: Data(file.utf8)).html)
+        let expected = """
+        {
+          "a": [
+            "x/y",
+            0.834,
+            60.0,
+            true,
+            null,
+            -2,
+            1e-07
+          ],
+          "b": 1,
+          "e": {},
+          "f": []
+        }
+        """
+        XCTAssertTrue(html.contains("<pre><code class=\"language-json\">\(HTML.escape(expected))</code></pre>"), html)
     }
 
     func testMarkdownAndLatexOutputs() {
@@ -437,5 +460,153 @@ final class ANSITests: XCTestCase {
 
     func testCarriageReturnsOverwriteTheLine() {
         XCTAssertEqual(ANSI.html("10%\r50%\r100%\nnext\r\nlast"), "100%\nnext\nlast")
+    }
+}
+
+/// Notebooks in a real WKWebView: the page script inserts the fragments, typesets and highlights.
+@MainActor
+final class NotebookWebKitTests: XCTestCase {
+    private var scratch: URL!
+
+    override func setUp() async throws {
+        scratch = FileManager.default.temporaryDirectory.appendingPathComponent("mdbuddy-nb-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: scratch.appendingPathComponent("images"), withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: examplesDir.appendingPathComponent("images/landscape.png"),
+                                        to: scratch.appendingPathComponent("images/landscape.png"))
+    }
+
+    override func tearDown() async throws {
+        try? FileManager.default.removeItem(at: scratch)
+    }
+
+    private func load(_ url: URL, appearance: NSAppearance.Name? = nil) async throws -> WebPageRenderer {
+        let renderer = WebPageRenderer(width: 900, height: 900, appearance: appearance)
+        _ = try await renderer.load(fileURL: url)
+        return renderer
+    }
+
+    private func render(_ cells: [[String: Any]]) async throws -> WebPageRenderer {
+        let file = scratch.appendingPathComponent("test.ipynb")
+        try notebookData(cells).write(to: file)
+        return try await load(file)
+    }
+
+    private func string(_ renderer: WebPageRenderer, _ js: String) async throws -> String {
+        try await renderer.evaluate(js) as? String ?? "<non-string>"
+    }
+
+    /// JavaScript for "the shadow roots of all HTML outputs".
+    private let roots = "[...document.querySelectorAll('.nb-fragment')].map(h => h.shadowRoot).filter(Boolean)"
+
+    func testExampleNotebookRendersEverything() async throws {
+        let url = examplesDir.appendingPathComponent("notebook.ipynb")
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        let cellCount = try XCTUnwrap(json["cells"] as? [Any]).count
+        let page = try await load(url)
+
+        let cells = try await string(page, "String(document.querySelectorAll('.nb-cell').length)")
+        XCTAssertEqual(cells, String(cellCount))
+        let pending = try await string(page, "String(document.querySelectorAll('.nb-fragment[hidden]').length)")
+        XCTAssertEqual(pending, "0", "every fragment should have been inserted")
+
+        let keywords = try await string(page, "String(document.querySelectorAll('.nb-source .hljs-keyword').length > 0)")
+        XCTAssertEqual(keywords, "true", "code cells should be highlighted")
+        let jsonOutput = try await string(page, "String(document.querySelectorAll('.nb-output .hljs-attr').length > 0)")
+        XCTAssertEqual(jsonOutput, "true", "JSON output should be highlighted")
+
+        let math = try await string(page, "String(document.querySelectorAll('.math .katex').length)")
+        XCTAssertGreaterThanOrEqual(Int(math) ?? 0, 5, "inline, display, bare align, Markdown output, Math output")
+        let bareAlign = try await string(page, "String(document.querySelectorAll('.nb-markdown .math-display .katex').length)")
+        XCTAssertEqual(bareAlign, "2")
+
+        let images = try await string(page, "[...document.querySelectorAll('img')].map(i => i.naturalWidth > 0 ? 'ok' : 'broken').join(',')")
+        XCTAssertEqual(images, "ok,ok,ok,ok", "attachment, PNG figure, SVG figure, static fallback")
+
+        let collapse = try await string(page, "getComputedStyle(\(roots).map(r => r.querySelector('table')).filter(Boolean)[0]).borderCollapse")
+        XCTAssertEqual(collapse, "collapse")
+        let styled = try await string(page, """
+            (() => { const cell = \(roots).map(r => r.querySelector('td[id^="T_"]')).filter(Boolean)[0];
+                     return cell ? getComputedStyle(cell).backgroundColor : 'no styled cell'; })()
+            """)
+        XCTAssertTrue(styled.hasPrefix("rgb("), "the Styler table keeps its own colors, got \(styled)")
+        XCTAssertNotEqual(styled, "rgba(0, 0, 0, 0)")
+
+        let traceback = try await string(page, "String(document.querySelectorAll('.nb-error [class*=\"ansi-fg\"]').length > 0)")
+        XCTAssertEqual(traceback, "true")
+        let stderr = try await string(page, "document.querySelector('.nb-stderr pre').textContent")
+        XCTAssertEqual(stderr, "a warning written to stderr\n")
+
+        let shell = try await string(page, "String(document.getElementById('interactive-plot') === null && \(roots).every(r => !r.getElementById('interactive-plot')))")
+        XCTAssertEqual(shell, "true", "the script-only HTML output is replaced by its image")
+        let heading = try await string(page, "document.querySelector('h1').id")
+        XCTAssertEqual(heading, "a-small-analysis")
+    }
+
+    func testUnclosedTagsDoNotLeak() async throws {
+        let page = try await render([
+            markdownCell("<div style=\"display:none\"><b>open"),
+            markdownCell("<details>hidden?"),
+            codeCell("x = 1", count: 1, outputs: [dataOutput([
+                "text/html": "<table><tr><td>cell</td><style>body{display:none} .nb-source{color:rgb(255, 0, 0)} pre{display:none}</style>",
+            ], result: 1)]),
+            markdownCell("visible end"),
+        ])
+        let height = try await string(page, "String(document.querySelector('.nb-source').offsetHeight > 0)")
+        XCTAssertEqual(height, "true")
+        let inside = try await string(page, "String(document.querySelector('.nb-source').closest('b, details, [style]') === null)")
+        XCTAssertEqual(inside, "true")
+        let color = try await string(page, "getComputedStyle(document.querySelector('.nb-source')).color")
+        XCTAssertNotEqual(color, "rgb(255, 0, 0)")
+        let body = try await string(page, "getComputedStyle(document.body).display")
+        XCTAssertNotEqual(body, "none")
+        let last = try await string(page, "(() => { const c = document.querySelectorAll('.nb-cell'); const l = c[c.length - 1]; return l.textContent.trim() + '|' + (l.offsetHeight > 0) + '|' + (l.closest('b, details') === null); })()")
+        XCTAssertEqual(last, "visible end|true|true")
+        let table = try await string(page, "\(roots)[0].querySelector('td').textContent")
+        XCTAssertEqual(table, "cell")
+    }
+
+    func testScriptsInNotebookNeverRun() async throws {
+        let attack = "<script>window.pwned = 1</script><img src=\"x\" onerror=\"window.pwned = 2\"><a href=\"javascript:window.pwned = 3\" id=\"link\">l</a>"
+        let page = try await render([
+            markdownCell("text " + attack),
+            codeCell("h", outputs: [dataOutput(["text/html": "<p>out</p>" + attack])]),
+            codeCell("s", outputs: [dataOutput(["image/svg+xml": "<svg xmlns=\"http://www.w3.org/2000/svg\" onload=\"window.pwned = 4\"><script>window.pwned = 5</script></svg>"])]),
+        ])
+        try await Task.sleep(nanoseconds: 300_000_000)
+        let pwned = try await string(page, "String(window.pwned)")
+        XCTAssertEqual(pwned, "undefined")
+        let shown = try await string(page, "\(roots)[0].querySelector('p').textContent")
+        XCTAssertEqual(shown, "out")
+    }
+
+    func testRelativeImageInMarkdownCell() async throws {
+        let page = try await render([markdownCell("![p](images/landscape.png)\n\n![missing one](images/missing.png)")])
+        let width = try await string(page, "String(document.querySelector('.nb-markdown img').naturalWidth > 0)")
+        XCTAssertEqual(width, "true")
+        let placeholder = try await string(page, "document.querySelector('.image-placeholder')?.textContent ?? 'none'")
+        XCTAssertEqual(placeholder, "missing one")
+    }
+
+    func testAlertsAndAnchorsWorkInMarkdownCells() async throws {
+        let page = try await render([markdownCell("## Same\n\n> [!NOTE]\n> noted"), markdownCell("## Same")])
+        let ids = try await string(page, "[...document.querySelectorAll('h2')].map(h => h.id).join(',')")
+        XCTAssertEqual(ids, "same,same-1")
+        let alert = try await string(page, "String(document.querySelectorAll('blockquote.alert-note').length)")
+        XCTAssertEqual(alert, "1")
+    }
+
+    func testNotebookLightAndDark() async throws {
+        let url = examplesDir.appendingPathComponent("notebook.ipynb")
+        var backgrounds: [String] = []
+        var outputText: [String] = []
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            let page = try await load(url, appearance: appearance)
+            backgrounds.append(try await string(page, "getComputedStyle(document.body).backgroundColor"))
+            outputText.append(try await string(page, "getComputedStyle(\(roots)[0].querySelector('td')).color"))
+            let image = try await page.snapshot(fullHeight: false)
+            XCTAssertGreaterThan(image.size.width, 0)
+        }
+        XCTAssertEqual(backgrounds, ["rgb(255, 255, 255)", "rgb(13, 17, 23)"])
+        XCTAssertNotEqual(outputText[0], outputText[1], "table text follows the appearance inside a shadow root")
     }
 }

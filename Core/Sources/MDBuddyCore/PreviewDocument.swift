@@ -146,7 +146,10 @@ public struct PreviewDocument {
         <title>\(HTML.escape(title))</title>
         <style>\(Resources.stylesheet)</style>
         <style>:root { --code-size: \(String(format: "%g", codeFontSize))px; }</style>\(
-            math ? "\n<style>\(Resources.mathStylesheet)</style>" : "")
+            math ? "\n<style>\(Resources.mathStylesheet)</style>" : "")\(
+            // media="not all": never applied to the page itself, only read by the page script.
+            bodyClass == "notebook"
+                ? "\n<style id=\"nb-output-style\" media=\"not all\">\(Resources.notebookOutputStylesheet)</style>" : "")
         </head>
         <body class="\(bodyClass)">
         \(body)

@@ -1,0 +1,8 @@
+# Packages scripts/make_example_notebook.py needs to build and run examples/notebook.ipynb.
+nbformat
+nbclient
+ipykernel
+numpy
+pandas
+matplotlib
+jinja2

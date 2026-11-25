@@ -143,11 +143,8 @@ enum NotebookRenderer {
             let text: String
             if let string = Notebook.text(value) {
                 text = string
-            } else if let data = try? JSONSerialization.data(withJSONObject: value,
-                                                             options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed]) {
-                text = String(decoding: data, as: UTF8.self)
             } else {
-                return nil
+                text = prettyJSON(value)
             }
             page.highlight = true
             return "<pre><code class=\"language-json\">\(HTML.escape(text))</code></pre>"
@@ -158,6 +155,36 @@ enum NotebookRenderer {
 
         default:
             return nil
+        }
+    }
+
+    /// JSON text for a parsed JSON value: two-space indent, sorted keys, and numbers in their
+    /// shortest form (JSONSerialization would print 0.834 as 0.83399999999999996).
+    static func prettyJSON(_ value: Any, indent: Int = 0) -> String {
+        let pad = String(repeating: "  ", count: indent + 1)
+        let close = String(repeating: "  ", count: indent)
+        switch value {
+        case is NSNull:
+            return "null"
+        case let number as NSNumber:
+            if CFGetTypeID(number) == CFBooleanGetTypeID() { return number.boolValue ? "true" : "false" }
+            if !CFNumberIsFloatType(number) { return number.stringValue }
+            let double = number.doubleValue
+            return double.isFinite ? "\(double)" : "null"
+        case let string as String:
+            let data = try? JSONSerialization.data(withJSONObject: string,
+                                                   options: [.fragmentsAllowed, .withoutEscapingSlashes])
+            return data.map { String(decoding: $0, as: UTF8.self) } ?? "\"\""
+        case let array as [Any]:
+            if array.isEmpty { return "[]" }
+            return "[\n" + array.map { pad + prettyJSON($0, indent: indent + 1) }.joined(separator: ",\n") + "\n\(close)]"
+        case let object as [String: Any]:
+            if object.isEmpty { return "{}" }
+            return "{\n" + object.keys.sorted().map { key in
+                "\(pad)\(prettyJSON(key)): \(prettyJSON(object[key]!, indent: indent + 1))"
+            }.joined(separator: ",\n") + "\n\(close)}"
+        default:
+            return "null"
         }
     }
 

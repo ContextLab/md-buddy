@@ -1,0 +1,18 @@
+/* Styles for a notebook's HTML outputs. Each output lives in its own shadow root, so the
+   page's rules do not reach it and its own <style> blocks do not reach the page; this sheet
+   is copied into every root. Colors come from the page's variables, which inherit. */
+:host { display: block; overflow-x: auto; color: var(--fg); font: 14px/1.5 var(--sans); }
+.nb-html > :first-child { margin-top: 0; }
+.nb-html > :last-child { margin-bottom: 0; }
+table { border-collapse: collapse; border-spacing: 0; margin: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { padding: 5px 10px; border: 1px solid var(--border); text-align: right; }
+th { font-weight: 600; }
+thead th { background: var(--bg-subtle); }
+tbody tr:nth-child(2n) { background: var(--bg-subtle); }
+caption { padding: 4px 0; color: var(--fg-muted); }
+img, svg, video { max-width: 100%; height: auto; }
+pre, code { font: var(--code-size)/1.45 var(--mono); }
+pre { margin: 0 0 8px; overflow-x: auto; }
+p { margin: 0 0 8px; }
+a { color: var(--link); }
+hr { border: 0; border-top: 1px solid var(--border); }

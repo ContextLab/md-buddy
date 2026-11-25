@@ -87,19 +87,47 @@
     chip.textContent = img.alt || source.split("/").pop() || "image";
     img.parentNode.replaceChild(chip, img);
   }
-  function watchImages() {
-    document.querySelectorAll("img").forEach(function (img) {
+  function watchImages(scope) {
+    scope.querySelectorAll("img").forEach(function (img) {
       if (img.complete && img.naturalWidth === 0 && img.src) replaceBrokenImage(img);
       else img.addEventListener("error", function () { replaceBrokenImage(img); });
     });
   }
 
+  // Notebook content written by the notebook's author (rendered Markdown cells, HTML outputs)
+  // arrives escaped, as the text of a hidden .nb-fragment element, and is inserted here.
+  // Parsing it as a fragment of its own container closes whatever tags it left open, so one
+  // cell cannot swallow the next. HTML outputs go into a shadow root: their <style> blocks
+  // stay inside it, and the page's rules stay out (the output stylesheet is copied in).
+  // Scripts inserted this way never run, and the page's CSP blocks inline handlers.
+  function insertFragments() {
+    var sheet = document.getElementById("nb-output-style");
+    var css = sheet ? sheet.textContent : "";
+    var roots = [];
+    document.querySelectorAll(".nb-fragment").forEach(function (host) {
+      var html = host.textContent;
+      host.textContent = "";
+      if (host.dataset.mode === "shadow") {
+        var root = host.attachShadow({ mode: "open" });
+        root.innerHTML = "<style>" + css + "</style><div class=\"nb-html\"></div>";
+        root.lastChild.innerHTML = html;
+        roots.push(root);
+      } else {
+        host.innerHTML = html;
+      }
+      host.hidden = false;
+    });
+    return roots;
+  }
+
   var article = document.querySelector(".markdown-body");
   if (article) {
+    var roots = insertFragments();
     addHeadingAnchors(article);
     addAlerts(article);
     typesetMath(article);
-    watchImages();
+    watchImages(document);
+    roots.forEach(watchImages);
   }
   highlight();
 })();

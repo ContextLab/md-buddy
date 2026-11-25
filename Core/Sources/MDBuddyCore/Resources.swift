@@ -19,6 +19,9 @@ enum Resources {
             + "@media (prefers-color-scheme: dark) {\n" + load("github-dark.min.css") + "\n}\n"
     }()
 
+    /// Copied by the page script into the shadow root of each notebook HTML output.
+    static let notebookOutputStylesheet = load("notebook-output.css")
+
     static let appJS = load("app.js")
     static let highlighter = load("highlight.min.js") + "\n" + load("highlight-extra.min.js")
 

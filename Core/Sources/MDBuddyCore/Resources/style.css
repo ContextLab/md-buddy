@@ -293,3 +293,82 @@ pre.plaintext {
 .math-display > .katex-display { margin: 0.75em 0; }
 .math .katex { color: inherit; }
 .math-error { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #cc0000; }
+
+/* ---------- Notebooks ---------- */
+.notebook {
+  --nb-gutter: 62px;
+  --ansi-black: #1f2328; --ansi-red: #cf222e; --ansi-green: #116329; --ansi-yellow: #7d4e00;
+  --ansi-blue: #0550ae; --ansi-magenta: #8250df; --ansi-cyan: #1b7c83; --ansi-white: #6e7781;
+  --ansi-bright-black: #57606a; --ansi-bright-red: #a40e26; --ansi-bright-green: #1a7f37;
+  --ansi-bright-yellow: #9a6700; --ansi-bright-blue: #0969da; --ansi-bright-magenta: #a475f9;
+  --ansi-bright-cyan: #3192aa; --ansi-bright-white: #8c959f;
+  --nb-error-bg: rgba(207, 34, 46, 0.07);
+}
+@media (prefers-color-scheme: dark) {
+  .notebook {
+    --ansi-black: #6e7681; --ansi-red: #ff7b72; --ansi-green: #3fb950; --ansi-yellow: #d29922;
+    --ansi-blue: #58a6ff; --ansi-magenta: #bc8cff; --ansi-cyan: #39c5cf; --ansi-white: #b1bac4;
+    --ansi-bright-black: #8b949e; --ansi-bright-red: #ffa198; --ansi-bright-green: #56d364;
+    --ansi-bright-yellow: #e3b341; --ansi-bright-blue: #79c0ff; --ansi-bright-magenta: #d2a8ff;
+    --ansi-bright-cyan: #56d4dd; --ansi-bright-white: #ffffff;
+    --nb-error-bg: rgba(248, 81, 73, 0.1);
+  }
+}
+.markdown-body.notebook { max-width: 980px; padding-left: 20px; }
+.nb-cell { margin: 0 0 18px; }
+.nb-markdown, .nb-raw, .nb-unsupported, .nb-empty { margin-left: var(--nb-gutter); }
+.nb-fragment > :first-child { margin-top: 0 !important; }
+.nb-fragment > :last-child { margin-bottom: 0 !important; }
+
+/* A prompt column, then the code or output. */
+.nb-input, .nb-output { display: grid; grid-template-columns: var(--nb-gutter) minmax(0, 1fr); }
+.nb-prompt {
+  padding: 11px 10px 0 0;
+  font: calc(var(--code-size) - 2px)/1.45 var(--mono);
+  color: var(--gutter-fg);
+  text-align: right;
+  white-space: nowrap;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.markdown-body pre.nb-source { margin: 0; padding: 10px 14px; border: 1px solid var(--border-muted); }
+.nb-outputs { margin-top: 8px; }
+.nb-output + .nb-output { margin-top: 6px; }
+.nb-output .nb-prompt { padding-top: 3px; }
+.nb-body { min-width: 0; overflow-x: auto; }
+.markdown-body .nb-body > pre {
+  margin: 0;
+  padding: 2px 0;
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+  width: max-content;
+  min-width: 100%;
+}
+.markdown-body .nb-body > pre:has(> code) { padding: 8px 12px; background: var(--bg-subtle); border-radius: 6px; }
+.markdown-body .nb-stderr .nb-body > pre,
+.markdown-body .nb-error .nb-body > pre { padding: 8px 12px; background: var(--nb-error-bg); border-radius: 6px; }
+.nb-body > img { display: block; max-width: 100%; height: auto; }
+.markdown-body .nb-raw pre { background: transparent; border: 1px dashed var(--border); }
+.nb-unsupported, .nb-empty { color: var(--fg-muted); font-size: 13px; font-style: italic; }
+.nb-unsupported { margin-top: 6px; }
+
+/* Terminal colors in streams and tracebacks. */
+.ansi-bold { font-weight: 600; }
+.ansi-fg-black { color: var(--ansi-black); } .ansi-fg-red { color: var(--ansi-red); }
+.ansi-fg-green { color: var(--ansi-green); } .ansi-fg-yellow { color: var(--ansi-yellow); }
+.ansi-fg-blue { color: var(--ansi-blue); } .ansi-fg-magenta { color: var(--ansi-magenta); }
+.ansi-fg-cyan { color: var(--ansi-cyan); } .ansi-fg-white { color: var(--ansi-white); }
+.ansi-fg-bright-black { color: var(--ansi-bright-black); } .ansi-fg-bright-red { color: var(--ansi-bright-red); }
+.ansi-fg-bright-green { color: var(--ansi-bright-green); } .ansi-fg-bright-yellow { color: var(--ansi-bright-yellow); }
+.ansi-fg-bright-blue { color: var(--ansi-bright-blue); } .ansi-fg-bright-magenta { color: var(--ansi-bright-magenta); }
+.ansi-fg-bright-cyan { color: var(--ansi-bright-cyan); } .ansi-fg-bright-white { color: var(--ansi-bright-white); }
+/* Backgrounds are tints, so the text on them stays readable in both appearances. */
+.ansi-bg-black, .ansi-bg-bright-black { background-color: color-mix(in srgb, var(--ansi-bright-black) 30%, transparent); }
+.ansi-bg-red, .ansi-bg-bright-red { background-color: color-mix(in srgb, var(--ansi-red) 30%, transparent); }
+.ansi-bg-green, .ansi-bg-bright-green { background-color: color-mix(in srgb, var(--ansi-green) 30%, transparent); }
+.ansi-bg-yellow, .ansi-bg-bright-yellow { background-color: color-mix(in srgb, var(--ansi-bright-yellow) 35%, transparent); }
+.ansi-bg-blue, .ansi-bg-bright-blue { background-color: color-mix(in srgb, var(--ansi-blue) 30%, transparent); }
+.ansi-bg-magenta, .ansi-bg-bright-magenta { background-color: color-mix(in srgb, var(--ansi-magenta) 30%, transparent); }
+.ansi-bg-cyan, .ansi-bg-bright-cyan { background-color: color-mix(in srgb, var(--ansi-cyan) 30%, transparent); }
+.ansi-bg-white, .ansi-bg-bright-white { background-color: color-mix(in srgb, var(--ansi-white) 30%, transparent); }
