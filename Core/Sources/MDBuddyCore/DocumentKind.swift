@@ -6,6 +6,8 @@ public enum DocumentKind: Equatable {
     /// Source code; `language` is a highlight.js language name, or nil to auto-detect.
     case code(language: String?)
     case plainText
+    /// A Jupyter notebook (`.ipynb`), rendered cell by cell with its outputs.
+    case notebook
 
     public static let markdownExtensions: Set<String> = [
         "md", "markdown", "mdown", "mkd", "mkdn", "mdwn", "mdtext", "mdtxt", "rmd", "qmd",
@@ -20,6 +22,7 @@ public enum DocumentKind: Equatable {
         // Foundation reports no extension for dotfiles (".gitignore"); use the name after the dot.
         if ext.isEmpty, name.hasPrefix("."), name.count > 1 { ext = String(name.dropFirst()).lowercased() }
         if markdownExtensions.contains(ext) { return .markdown }
+        if ext == "ipynb" { return .notebook }
         if let language = LanguageMap.byFileName[name.lowercased()] { return .code(language: language) }
         if let language = LanguageMap.byExtension[ext] { return .code(language: language) }
         if plainTextExtensions.contains(ext) { return .plainText }

@@ -36,6 +36,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController, WKN
 
         switch document.kind {
         case .markdown: preferredContentSize = NSSize(width: 860, height: 900)
+        case .notebook: preferredContentSize = NSSize(width: 900, height: 900)
         case .code, .plainText: preferredContentSize = NSSize(width: 900, height: 700)
         }
 

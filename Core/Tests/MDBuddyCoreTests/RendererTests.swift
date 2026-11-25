@@ -93,6 +93,7 @@ final class DocumentKindTests: XCTestCase {
         XCTAssertEqual(DocumentKind.detect(fileName: "README.md"), .markdown)
         XCTAssertEqual(DocumentKind.detect(fileName: "paper.QMD"), .markdown)
         XCTAssertEqual(DocumentKind.detect(fileName: "a.py"), .code(language: "python"))
+        XCTAssertEqual(DocumentKind.detect(fileName: "analysis.ipynb"), .notebook)
         XCTAssertEqual(DocumentKind.detect(fileName: "App.tsx"), .code(language: "typescript"))
         XCTAssertEqual(DocumentKind.detect(fileName: "fit.m"), .code(language: "objectivec"))
         XCTAssertEqual(DocumentKind.detect(fileName: "model.jl"), .code(language: "julia"))

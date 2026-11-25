@@ -4,6 +4,8 @@ import Foundation
 public struct PreviewDocument {
     /// Files larger than this are truncated before rendering.
     public static let maxBytes = 8 * 1024 * 1024
+    /// Notebooks are JSON and cannot be cut short; larger ones are not previewed.
+    public static let maxNotebookBytes = 50 * 1024 * 1024
     /// Code larger than this is shown without syntax highlighting (highlight.js is ~1 MB/s).
     public static let maxHighlightBytes = 1 * 1024 * 1024
     /// Auto-detecting a language is much slower than highlighting a known one.
@@ -33,9 +35,32 @@ public struct PreviewDocument {
 
     public init(fileName: String, data: Data, kind: DocumentKind? = nil,
                 codeFontSize: Double = PreviewDocument.defaultCodeFontSize) {
-        let kind = kind ?? DocumentKind.detect(fileName: fileName)
-        self.kind = kind
+        var kind = kind ?? DocumentKind.detect(fileName: fileName)
         self.title = fileName
+
+        if kind == .notebook {
+            // A notebook is one JSON document, so it is read whole or not at all.
+            if data.count > Self.maxNotebookBytes {
+                self.kind = kind
+                let size = ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)
+                html = Self.page(title: fileName, codeFontSize: codeFontSize, bodyClass: "notice",
+                                 body: "<p>This notebook is \(size), too large to preview "
+                                     + "(limit \(Self.maxNotebookBytes / 1024 / 1024) MB).</p>", script: nil)
+                return
+            }
+            if let notebook = Notebook.parse(data) {
+                self.kind = kind
+                let rendered = NotebookRenderer.render(notebook)
+                html = Self.page(title: fileName, codeFontSize: codeFontSize, bodyClass: "notebook",
+                                 body: "<article class=\"markdown-body notebook\">\n\(rendered.html)</article>",
+                                 script: Resources.appScript(highlight: rendered.highlight, math: rendered.math),
+                                 math: rendered.math)
+                return
+            }
+            // Not a notebook after all: show the file as the JSON it claims to be.
+            kind = .code(language: "json")
+        }
+        self.kind = kind
 
         let truncated = data.count > Self.maxBytes
         guard let text = TextDecoding.decode(truncated ? Self.utf8SafePrefix(data, Self.maxBytes) : data) else {
@@ -62,6 +87,11 @@ public struct PreviewDocument {
         case .plainText:
             html = Self.page(title: fileName, codeFontSize: codeFontSize, bodyClass: "plaintext",
                              body: notice + "<pre class=\"plaintext\">\(HTML.escape(text))</pre>", script: nil)
+
+        case .notebook:
+            // Not reached: a notebook was rendered above, or re-kinded as JSON.
+            html = Self.page(title: fileName, codeFontSize: codeFontSize, bodyClass: "code",
+                             body: notice + CodeView.render(text, language: nil), script: nil)
 
         case .code(let language):
             let size = text.utf8.count
