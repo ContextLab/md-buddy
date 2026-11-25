@@ -28,7 +28,9 @@ dist: build      ## Zip the built app into dist/ for sharing
 	scripts/sign.sh "$(APP)"
 	mkdir -p dist
 	rm -f "dist/MD-Buddy-$(VERSION).zip"
-	ditto -c -k --keepParent "$(APP)" "dist/MD-Buddy-$(VERSION).zip"
+	@# No extended attributes in the zip: unzip(1) would unpack them as ._ files inside the
+	@# bundle, which breaks its signature (Finder's unzip hides the problem).
+	ditto -c -k --norsrc --noextattr --keepParent "$(APP)" "dist/MD-Buddy-$(VERSION).zip"
 	@# Xcode registers the build copy with LaunchServices; drop it so System Settings lists one MD Buddy.
 	@/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$(APP)" >/dev/null 2>&1 || true
 	@echo "dist/MD-Buddy-$(VERSION).zip"

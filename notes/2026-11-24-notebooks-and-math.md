@@ -21,7 +21,12 @@
 - 2026-11-25, Jeremy: app version → 1.1.0 (was 1.0.0); push the branch when the review is
   clean; "sync the tags with the actual version numbers". Done: tag `v0.1` renamed to `v1.0.0`
   (same commit 7adecb0, GitHub release retitled "MD Buddy v1.0.0", asset unchanged).
-- Left for Jeremy: merge to main (PR or direct), then tag `v1.1.0` on main and publish a release.
+- 2026-11-25, Jeremy: "Merge to main and release as v1.1.0". main fast-forwarded to the branch;
+  tag `v1.1.0`; release https://github.com/ContextLab/md-buddy/releases/tag/v1.1.0 with
+  MD-Buddy-1.1.0.zip (arm64, ad hoc signed, sha256 aad89af8…72995).
+- `make dist` now zips without extended attributes: the zip (and the old 1.0.0 one) failed
+  `codesign --verify` when unpacked with unzip(1) because com.apple.provenance came out as
+  `._` files inside the bundle. Finder's unzip was unaffected. The 1.0.0 asset was not rebuilt.
 
 ## Final review (independent reviewer, 2026-11-25): fixed
 - `isScriptShell` used regexes that took 285 s on 300 KB of unclosed `<`; now one pass over bytes.
