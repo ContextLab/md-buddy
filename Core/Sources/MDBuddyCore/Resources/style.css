@@ -287,3 +287,9 @@ pre.plaintext {
 }
 .image-placeholder::before { content: "▨"; }
 .image-placeholder.remote::before { content: "⌁"; }
+
+/* Math (KaTeX) */
+.math-display { display: block; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+.math-display > .katex-display { margin: 0.75em 0; }
+.math .katex { color: inherit; }
+.math-error { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #cc0000; }

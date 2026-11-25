@@ -80,7 +80,8 @@ final class MarkdownRendererTests: XCTestCase {
         let doc = PreviewDocument(fileName: "showcase.md", data: data)
         XCTAssertEqual(doc.kind, .markdown)
         for needle in ["<table>", "<del>strikethrough</del>", "language-python", "<img src=\"images/landscape.png\"",
-                       "class=\"footnotes\"", "<kbd>Space</kbd>", "front-matter", "hljs", "<mark>highlight</mark>"] {
+                       "class=\"footnotes\"", "<kbd>Space</kbd>", "front-matter", "hljs", "<mark>highlight</mark>",
+                       "class=\"math math-inline\"", "class=\"math math-display\"", "like $5 and $10 are"] {
             XCTAssertTrue(doc.html.contains(needle), "missing \(needle)")
         }
         XCTAssertFalse(doc.html.contains("<script>document.body"), "raw <script> must be filtered")

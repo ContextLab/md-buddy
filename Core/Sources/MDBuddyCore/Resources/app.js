@@ -1,4 +1,4 @@
-/* MD Buddy page script: heading anchors, GitHub alerts, syntax highlighting. */
+/* MD Buddy page script: heading anchors, GitHub alerts, math, syntax highlighting. */
 (function () {
   "use strict";
 
@@ -35,6 +35,26 @@
       title.className = "alert-title";
       title.textContent = ALERTS[type];
       bq.insertBefore(title, bq.firstChild);
+    });
+  }
+
+  // Math arrives as <span class="math math-inline|math-display">TeX source</span>.
+  // A formula KaTeX cannot parse is shown as its source in KaTeX's error color.
+  function typesetMath(root) {
+    if (typeof katex === "undefined") return;
+    root.querySelectorAll(".math").forEach(function (el) {
+      var tex = el.textContent;
+      try {
+        katex.render(tex, el, {
+          displayMode: el.classList.contains("math-display"),
+          throwOnError: false,
+          trust: false,
+          strict: "ignore"
+        });
+      } catch (e) {
+        el.textContent = tex;
+        el.classList.add("math-error");
+      }
     });
   }
 
@@ -78,6 +98,7 @@
   if (article) {
     addHeadingAnchors(article);
     addAlerts(article);
+    typesetMath(article);
     watchImages();
   }
   highlight();

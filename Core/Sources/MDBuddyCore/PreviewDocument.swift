@@ -53,9 +53,11 @@ public struct PreviewDocument {
         switch kind {
         case .markdown:
             let body = RemoteImages.rewrite(MarkdownRenderer.render(text))
-            let script = Resources.appScript(highlight: body.contains("<code class=\"language-"))
+            let math = body.contains("class=\"math ")
+            let script = Resources.appScript(highlight: body.contains("<code class=\"language-"), math: math)
             html = Self.page(title: fileName, codeFontSize: codeFontSize, bodyClass: "markdown",
-                             body: notice + "<article class=\"markdown-body\">\(body)</article>", script: script)
+                             body: notice + "<article class=\"markdown-body\">\(body)</article>", script: script,
+                             math: math)
 
         case .plainText:
             html = Self.page(title: fileName, codeFontSize: codeFontSize, bodyClass: "plaintext",
@@ -91,7 +93,7 @@ public struct PreviewDocument {
     }
 
     static func page(title: String, codeFontSize: Double = defaultCodeFontSize,
-                     bodyClass: String, body: String, script: String?) -> String {
+                     bodyClass: String, body: String, script: String?, math: Bool = false) -> String {
         let nonce = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         // Raw HTML in Markdown is allowed, but only our own nonce-tagged script may run,
         // and nothing may be fetched except images/media.
@@ -113,7 +115,8 @@ public struct PreviewDocument {
         <meta name="color-scheme" content="light dark">
         <title>\(HTML.escape(title))</title>
         <style>\(Resources.stylesheet)</style>
-        <style>:root { --code-size: \(String(format: "%g", codeFontSize))px; }</style>
+        <style>:root { --code-size: \(String(format: "%g", codeFontSize))px; }</style>\(
+            math ? "\n<style>\(Resources.mathStylesheet)</style>" : "")
         </head>
         <body class="\(bodyClass)">
         \(body)

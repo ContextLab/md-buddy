@@ -97,6 +97,24 @@ appear as a labelled placeholder: ![Markdown logo](https://raw.githubusercontent
 > [!WARNING]
 > Scripts inside Markdown never run.
 
+## Math
+
+Inline math such as $e^{i\pi} + 1 = 0$ and $\hat{\beta} = (X^\top X)^{-1} X^\top y$ sits in the
+text. Prices like $5 and $10 are left alone, and so is code: `$PATH`.
+
+$$
+\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+\qquad
+\sum_{k=1}^{n} k = \frac{n(n+1)}{2}
+$$
+
+$$
+\begin{aligned}
+\nabla \cdot \mathbf{E} &= \frac{\rho}{\varepsilon_0} \\
+\nabla \times \mathbf{B} &= \mu_0 \mathbf{J} + \mu_0 \varepsilon_0 \frac{\partial \mathbf{E}}{\partial t}
+\end{aligned}
+$$
+
 ## HTML blocks
 
 <details>

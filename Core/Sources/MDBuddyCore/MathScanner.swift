@@ -66,8 +66,12 @@ enum MathScanner {
         let bareEnvironments: Bool
         let token: String
         let code: [Bool]
-        var out = ""
+                var out = ""
         var spans: [MathSpan] = []
+        /// Searches that failed: delimiter → the index before which a new search for it must
+        /// also fail. A failed search runs to the end of its paragraph, so without this a
+        /// paragraph of unclosed openers ("$5 $6 $7 …") would be scanned once per opener.
+        var failedBefore: [String: Int] = [:]
 
         init(chars: [Character], bareEnvironments: Bool, token: String) {
             self.chars = chars
@@ -165,14 +169,19 @@ enum MathScanner {
 
         /// The index where `pattern` next occurs, searching from `start` without leaving the
         /// paragraph, entering a code block or stopping inside a backslash escape.
-        func find(_ pattern: [Character], from start: Int) -> Int? {
+                mutating func find(_ pattern: [Character], from start: Int) -> Int? {
+            let key = String(pattern)
+            if let limit = failedBefore[key], start < limit { return nil }
             var j = start
             let n = chars.count
+            defer { if j > start { failedBefore[key] = j } }
             while j < n {
                 if code[j] { return nil }
-                if j + pattern.count <= n, chars[j] == pattern[0],
+                                if j + pattern.count <= n, chars[j] == pattern[0],
                    Array(chars[j..<(j + pattern.count)]) == pattern {
-                    return j
+                    let found = j
+                    j = start  // a success is not remembered
+                    return found
                 }
                 if chars[j] == "\\" {
                     j += 2
@@ -185,10 +194,12 @@ enum MathScanner {
         }
 
         /// The index of the `$` closing inline math whose content starts at `start`.
-        func inlineClose(from start: Int) -> Int? {
+                mutating func inlineClose(from start: Int) -> Int? {
             let n = chars.count
             guard start < n, !chars[start].isWhitespace, chars[start] != "$" else { return nil }
+            if let limit = failedBefore["$"], start < limit { return nil }
             var j = start
+            defer { if j > start { failedBefore["$"] = j } }
             while j < n {
                 if code[j] { return nil }
                 let c = chars[j]
@@ -196,10 +207,22 @@ enum MathScanner {
                     j += 2
                     continue
                 }
+                if c == "`" {
+                    // Code spans bind tighter than math: a span that starts here ends the search.
+                    var run = 0
+                    while j + run < n, chars[j + run] == "`" { run += 1 }
+                    if closingBackticks(count: run, from: j + run) != nil { return nil }
+                    j += run
+                    continue
+                }
                 if c == "\n", paragraphEnds(at: j) { return nil }
                 if c == "$", j > start, !chars[j - 1].isWhitespace {
-                    let followedByDigit = j + 1 < n && chars[j + 1].isASCII && chars[j + 1].isNumber
-                    if !followedByDigit { return j }
+                                        let followedByDigit = j + 1 < n && chars[j + 1].isASCII && chars[j + 1].isNumber
+                    if !followedByDigit {
+                        let found = j
+                        j = start  // a success is not remembered
+                        return found
+                    }
                 }
                 j += 1
             }
@@ -208,16 +231,23 @@ enum MathScanner {
 
         /// The index just past the backtick run that closes a code span opened by `count`
         /// backticks, or nil when the span is never closed in this paragraph.
-        func closingBackticks(count: Int, from start: Int) -> Int? {
+                mutating func closingBackticks(count: Int, from start: Int) -> Int? {
+            let key = "`\(count)"
+            if let limit = failedBefore[key], start < limit { return nil }
             var j = start
             let n = chars.count
+            defer { if j > start { failedBefore[key] = j } }
             while j < n {
                 if code[j] { return nil }
                 if chars[j] == "\n", paragraphEnds(at: j) { return nil }
                 if chars[j] == "`" {
                     var run = 0
                     while j + run < n, chars[j + run] == "`" { run += 1 }
-                    if run == count { return j + run }
+                                        if run == count {
+                        let found = j + run
+                        j = start  // a success is not remembered
+                        return found
+                    }
                     j += run
                     continue
                 }

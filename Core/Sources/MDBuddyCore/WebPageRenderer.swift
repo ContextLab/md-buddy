@@ -40,6 +40,11 @@ public final class WebPageRenderer: NSObject, WKNavigationDelegate {
         try await webView.evaluateJavaScript(script)
     }
 
+    /// Runs `body` as the body of an async JavaScript function, so it may `await` and `return`.
+    public func evaluateAsync(_ body: String) async throws -> Any? {
+        try await webView.callAsyncJavaScript(body, arguments: [:], in: nil, contentWorld: .page)
+    }
+
     /// Captures the page. With `fullHeight`, the view is grown to the document's height first.
     public func snapshot(fullHeight: Bool) async throws -> NSImage {
         if fullHeight, let height = try await evaluate("document.documentElement.scrollHeight") as? Double {

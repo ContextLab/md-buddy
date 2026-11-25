@@ -21,8 +21,8 @@ public enum MarkdownRenderer {
     /// Renders `markdown` to an HTML body fragment. A leading YAML/TOML front-matter block
     /// is shown as a collapsible code block rather than being parsed as Markdown.
     ///
-    /// Math (`$…$`, `$$…$$`, `\\(…\\)`, `\\[…\\]`) becomes `<span class="math …">` elements
-    /// for the page script to typeset. `bareMathEnvironments` also treats a `\\begin{…}` block
+    /// Math (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`) becomes `<span class="math …">` elements
+    /// for the page script to typeset. `bareMathEnvironments` also treats a `\begin{…}` block
     /// written without `$` as math, as Jupyter does in notebook cells.
     public static func render(_ markdown: String, bareMathEnvironments: Bool = false) -> String {
         // Swift treats "\r\n" as one Character, so normalise line endings before splitting.

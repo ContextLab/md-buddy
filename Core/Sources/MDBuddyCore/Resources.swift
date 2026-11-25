@@ -22,8 +22,16 @@ enum Resources {
     static let appJS = load("app.js")
     static let highlighter = load("highlight.min.js") + "\n" + load("highlight-extra.min.js")
 
-    /// The page script; highlight.js (~180 KB) is only included when there is code to colour.
-    static func appScript(highlight: Bool) -> String {
-        highlight ? highlighter + "\n" + appJS : appJS
+    /// KaTeX, and its stylesheet with the fonts inlined as data: URIs (scripts/vendor_katex.py).
+    static let mathScript = load("katex.min.js")
+    static let mathStylesheet = load("katex.min.css")
+
+    /// The page script. highlight.js (~180 KB) is only included when there is code to colour,
+    /// and KaTeX (~270 KB) only when there is math to typeset.
+    static func appScript(highlight: Bool, math: Bool = false) -> String {
+        var script = ""
+        if math { script += mathScript + "\n" }
+        if highlight { script += highlighter + "\n" }
+        return script + appJS
     }
 }
