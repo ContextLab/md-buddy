@@ -21,6 +21,10 @@ capture "$ROOT/examples/showcase.md" quicklook-markdown
 capture "$ROOT/examples/showcase.md" quicklook-markdown-code -24
 capture "$ROOT/examples/showcase.md" quicklook-markdown-media -44
 capture "$ROOT/examples/code/analysis.py" quicklook-python
+capture "$ROOT/examples/showcase.md" quicklook-markdown-math -62
+capture "$ROOT/examples/notebook.ipynb" quicklook-notebook
+capture "$ROOT/examples/notebook.ipynb" quicklook-notebook-outputs -27
+
 
 echo "==> Off-screen renders"
 for appearance in light dark; do
@@ -28,4 +32,7 @@ for appearance in light dark; do
   echo "  $OUT/showcase-$appearance.png"
 done
 "$RENDER" "$ROOT/examples/code/analysis.py" --png "$OUT/code-light.png" --height 420 --appearance light
+"$RENDER" "$ROOT/examples/notebook.ipynb" --png "$OUT/notebook-light.png" --width 900 --height 1000 --appearance light
+echo "  $OUT/notebook-light.png"
+
 echo "  $OUT/code-light.png"

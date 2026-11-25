@@ -29,7 +29,7 @@ struct WelcomeView: View {
                 .frame(width: 96, height: 96)
             Text("MD Buddy")
                 .font(.system(size: 26, weight: .semibold))
-            Text("Quick Look previews for Markdown, source code and plain text.")
+            Text("Quick Look previews for Markdown, Jupyter notebooks, source code and plain text.")
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 10) {

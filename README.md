@@ -2,7 +2,7 @@
 
 <h1 align="center">MD Buddy</h1>
 
-<p align="center">Quick Look previews for Markdown, source code and plain text on macOS.<br>
+<p align="center">Quick Look previews for Markdown, Jupyter notebooks, source code and plain text on macOS.<br>
 Select a file in Finder, press <kbd>Space</kbd>, and read it rendered.</p>
 
 <p align="center">
@@ -13,8 +13,8 @@ Select a file in Finder, press <kbd>Space</kbd>, and read it rendered.</p>
 MD Buddy is a Quick Look preview extension written from scratch in Swift. Markdown is parsed
 natively with [cmark-gfm](https://github.com/swiftlang/swift-cmark), GitHub's C implementation of
 CommonMark, and shown in a WebKit view styled like GitHub. Code is highlighted with a bundled copy
-of [highlight.js](https://highlightjs.org). The installed app is 1 MB and has no runtime
-dependencies.
+of [highlight.js](https://highlightjs.org), and math is typeset with a bundled copy of
+[KaTeX](https://katex.org). The installed app is 1.8 MB and has no runtime dependencies.
 
 ## Features
 
@@ -28,8 +28,22 @@ dependencies.
   paragraphs and so on
 - GitHub alerts (`> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`)
 - YAML (`---`) and TOML (`+++`) front matter, shown as a collapsible block
+- Math typeset as LaTeX: `$…$` and `\(…\)` inline, `$$…$$` and `\[…\]` as display equations.
+  Prices such as "$5 and $10" are left alone, and so is anything inside code
 - Heading anchors, so in-page links such as `[see below](#tables)` scroll the preview
+
 - `.md`, `.markdown`, `.mdown`, `.mkd`, `.mkdn`, `.mdwn`, `.mdtext`, `.mdtxt`, `.Rmd`, `.qmd`
+
+**Jupyter notebooks** (`.ipynb`), shown as a static, fully rendered notebook
+
+- Markdown cells with everything listed above, including math and images attached to a cell.
+  A LaTeX block written without dollar signs (`\begin{align}…\end{align}`) is typeset, as in
+  Jupyter
+- Code cells highlighted in the notebook's language, with their `[n]:` execution counts
+- Outputs in their richest static form: HTML tables (pandas DataFrames, styled tables with
+  their own colors), PNG, JPEG, GIF and SVG figures, Markdown, LaTeX, JSON and plain text
+- Printed output, with stderr tinted, and error tracebacks with their terminal colors
+- nbformat 4, and the older nbformat 3 on a best-effort basis
 
 **Source code**: line numbers and highlighting for Python, R, Julia, MATLAB, C/C++,
 Objective-C, Swift, Go, Rust, Java, Kotlin, Scala, JavaScript, TypeScript (`.tsx`), shell
@@ -70,13 +84,30 @@ reports 11 pt; MD Buddy ignores that fallback and uses 14 px.
     <td><img src="docs/screenshots/quicklook-python.png" alt="A Python file in Quick Look"></td>
     <td><img src="docs/screenshots/code-light.png" alt="A Python file, light mode"></td>
   </tr>
-  <tr>
+    <tr>
     <td align="center">A Python file (dark)</td>
     <td align="center">The same file (light)</td>
   </tr>
+  <tr>
+    <td><img src="docs/screenshots/quicklook-notebook.png" alt="A Jupyter notebook in Quick Look: Markdown cell with math"></td>
+    <td><img src="docs/screenshots/quicklook-notebook-outputs.png" alt="A Jupyter notebook in Quick Look: tables and a figure"></td>
+  </tr>
+  <tr>
+    <td align="center">A notebook: text, math, code</td>
+    <td align="center">Its outputs: tables and figures</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/quicklook-markdown-math.png" alt="Typeset math in a Markdown file"></td>
+    <td><img src="docs/screenshots/notebook-light.png" alt="A Jupyter notebook, light mode"></td>
+  </tr>
+  <tr>
+    <td align="center">Math in a Markdown file</td>
+    <td align="center">The notebook (light)</td>
+  </tr>
 </table>
 
-The screenshots in the first three cells are real Finder Quick Look panels, captured by
+The screenshots in this table, apart from the two light ones, are real Finder Quick Look
+panels, captured by
 [`scripts/screenshots.sh`](scripts/screenshots.sh).
 
 ## Install
@@ -132,7 +163,16 @@ This removes `/Applications/MD Buddy.app`, unregisters the extension and resets 
 - **Remote images.** Quick Look gives preview extensions no network access, so an image
   loaded from `https://…` shows as a labelled placeholder with its alt text. Images stored
   next to the file work.
-- **Math and diagrams.** `$…$` math and Mermaid blocks appear as written, not typeset.
+- **Diagrams.** Mermaid blocks appear as written, not drawn.
+- **Math coverage.** Math is typeset by KaTeX, which supports most but not all of the LaTeX
+  that MathJax (used by Jupyter and GitHub) does. A formula KaTeX cannot parse is shown as its
+  source, in red. In `.md` files a `\begin{…}` block needs `$$` around it, as on GitHub; in
+  notebooks it does not.
+- **Notebooks are static.** Nothing runs. Interactive outputs (Plotly, Bokeh, widgets) show
+  their static image or text version when the notebook saved one, and otherwise a note that
+  the output cannot be shown. Cells marked hidden or collapsed are shown. Notebooks over 50 MB
+  are not previewed, and a file that is not valid notebook JSON (for example one with
+  unresolved merge conflict markers) is shown as highlighted JSON.
 - **Scripts never run.** Raw `<script>`, `<iframe>` and `<style>` tags are neutralised (GitHub
   does the same), inline event handlers such as `onerror=` are blocked by the page's Content
   Security Policy, and `javascript:` links do nothing.
@@ -145,7 +185,9 @@ This removes `/Applications/MD Buddy.app`, unregisters the extension and resets 
 Finder ── Space ──▶ Quick Look ──▶ MD Buddy Preview.appex
                                        │
                  PreviewDocument ◀─────┘  read file, decode text (UTF-8/16/32, Latin-1…)
-                  ├─ Markdown ─▶ cmark-gfm ─▶ HTML
+                                    ├─ Markdown ─▶ math lifted out ─▶ cmark-gfm ─▶ HTML (KaTeX typesets in the page)
+                  ├─ notebook ─▶ JSON ─▶ cells: Markdown as above, code, outputs
+
                   ├─ code     ─▶ line-numbered <pre>, highlight.js
                   └─ text     ─▶ wrapped <pre>
                         │
@@ -157,11 +199,18 @@ Finder ── Space ──▶ Quick Look ──▶ MD Buddy Preview.appex
 ```
 
 - Parsing is native: cmark-gfm turns Markdown into HTML in C. On this Mac, the
-  `mdbuddy-render` tool converts a 1.1 MB Markdown file (the showcase repeated 400 times) to a
-  finished page in 0.10 s of wall-clock time, process start included (3 runs, Apple M2 Max,
+  `mdbuddy-render` tool converts a 1.3 MB Markdown file (the showcase repeated 400 times) to a
+  finished page in 0.26 s of wall-clock time, process start included (3 runs, Apple M2 Max,
   macOS 26.6).
-- highlight.js (about 180 KB) is included only in pages
-  that contain code; plain text gets no script at all.
+- highlight.js (about 180 KB) is included only in pages that contain code, and KaTeX (about
+  270 KB of script plus 370 KB of stylesheet with its fonts embedded) only in pages that
+  contain math; plain text gets no script at all.
+- Math is found in the Markdown source and set aside before cmark-gfm runs, so the
+  underscores in `$a_i + b_i$` are not read as emphasis; KaTeX then typesets it in the page.
+- A notebook's own markup never goes straight into the page. Rendered Markdown cells and HTML
+  outputs are written escaped, and the page script inserts each into its own container (HTML
+  outputs into a shadow root). An unclosed tag or a `<style>` block in one cell therefore
+  cannot hide or restyle the cells after it, and scripts in a notebook never run.
 - The page's base URL is the document's folder under a private
   `mdbuddy-local:` scheme, so a relative `src` resolves to the file beside the document and
   the extension reads it from disk.
@@ -176,8 +225,9 @@ Finder ── Space ──▶ Quick Look ──▶ MD Buddy Preview.appex
 App/                 host app (carries the extension; declares file types)
 PreviewExtension/    the Quick Look extension (QLPreviewingController + WKWebView)
 Core/                Swift package: renderer, resources, mdbuddy-render CLI, tests
-examples/            showcase.md, code and text samples used by tests and screenshots
-scripts/             install, uninstall, screenshots, type generation, icon
+examples/            showcase.md, notebook.ipynb, code and text samples used by tests and screenshots
+scripts/             install, uninstall, screenshots, type generation, icon, KaTeX vendoring,
+                     the example notebook
 ```
 
 | Command | What it does |
@@ -188,9 +238,12 @@ scripts/             install, uninstall, screenshots, type generation, icon
 | `make screenshots` | Recapture `docs/screenshots/` from live Finder Quick Look panels |
 | `make dist` | Zip the built app into `dist/` |
 | `python3 scripts/gen_types.py` | Regenerate the declared and claimed file types after editing `LanguageMap` |
+| `python3 scripts/vendor_katex.py` | Re-download the pinned KaTeX release and rebuild its two resource files |
+| `python scripts/make_example_notebook.py` | Rebuild and re-run `examples/notebook.ipynb` (needs the packages in `scripts/requirements.txt`) |
 
 The tests use real inputs throughout: they render the files in `examples/`, load pages in
-WebKit to check heading anchors, alerts, highlighting, image loading and script blocking, and
+WebKit to check heading anchors, alerts, highlighting, typeset math, notebook rendering, image
+loading and script blocking, and
 ask LaunchServices whether each known extension routes to the installed extension.
 `RoutingTests` is skipped when MD Buddy isn't installed.
 

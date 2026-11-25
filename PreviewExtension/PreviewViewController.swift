@@ -3,7 +3,7 @@ import MDBuddyCore
 import QuickLookUI
 import WebKit
 
-/// Quick Look preview for Markdown, source code and plain text.
+/// Quick Look preview for Markdown, Jupyter notebooks, source code and plain text.
 ///
 /// The document is converted to HTML natively (cmark-gfm) and shown in a WKWebView.
 /// Relative URLs resolve against a custom `mdbuddy-local:` base URL so images next to

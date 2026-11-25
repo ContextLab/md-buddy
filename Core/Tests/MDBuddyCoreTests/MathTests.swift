@@ -186,6 +186,16 @@ final class MathWebKitTests: XCTestCase {
         XCTAssertTrue(text.contains("after"), text)
     }
 
+    /// A numbered equation's tag sits at the right edge; it must not push the block wider
+    /// than the page and summon a scroll bar.
+    func testNumberedEquationFitsWithoutScrolling() async throws {
+        let page = try await render("$$\n\\begin{align}\ny_i &= \\beta_0 + \\beta_1 x_i \\\\\ne_i &\\sim \\mathcal{N}(0, \\sigma^2)\n\\end{align}\n$$")
+                let numbers = try await string(page, "String(document.querySelectorAll('.math-display .eqn-num').length)")
+        XCTAssertEqual(numbers, "2")
+        let overflow = try await string(page, "(() => { const e = document.querySelector('.math-display'); return String(e.scrollWidth - e.clientWidth); })()")
+        XCTAssertEqual(overflow, "0")
+    }
+
     func testHeadingWithMathStillGetsAnAnchor() async throws {
         let page = try await render("# Energy $E = mc^2$\n\ntext")
         let id = try await string(page, "document.querySelector('h1').id")
